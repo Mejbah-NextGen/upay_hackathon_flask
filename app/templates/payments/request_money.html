@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Request Money · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Request Money</h1><p>Prepare a message asking someone to send money to your demo wallet.</p></div></div>
+<section class="section-card form-card narrow-card">
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Recipient Mobile Number<input name="recipient_mobile" value="{{ values.get('recipient_mobile', '') }}" type="tel" inputmode="tel" placeholder="01XXXXXXXXX" maxlength="24" required></label>
+    <label>Requested Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="500.00" required></label>
+    <label>Note (Optional)<input name="note" value="{{ values.get('note', '') }}" maxlength="160" placeholder="What is this request for?"></label>
+    <button class="btn btn-primary" type="submit">Prepare Request Message</button>
+  </form>
+  {% if prepared %}
+  <div class="section-head"><h2>Prepared Request</h2></div>
+  <p>For {{ prepared.recipient_mobile }} · ৳ {{ prepared.amount }}</p>
+  <div class="form-stack">
+    <label>Message to Copy<textarea readonly rows="4" aria-label="Prepared money request" onclick="this.select()" onfocus="this.select()">{{ prepared.message }}</textarea></label>
+  </div>
+  <p class="muted">Copy and share this message yourself. The recipient needs a registered demo wallet to send money. No request is sent automatically and no balance changes until a transfer is completed.</p>
+  {% endif %}
+</section>
+{% endblock %}

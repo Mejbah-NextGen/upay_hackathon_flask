@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Settings · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Preferences</span><h1>Settings</h1><p>Manage your wallet notification preferences.</p></div></div>
+<section class="section-card narrow-card">
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="notification-setting"><span>Transaction notifications</span><input type="checkbox" name="notifications_enabled" {% if preferences.notifications_enabled %}checked{% endif %}></label>
+    <p class="muted">Show recent wallet activity and an unread badge in the notification menu. Your transactions are always available in History.</p>
+    <button class="btn btn-primary" type="submit">Save Preferences</button>
+  </form>
+</section>
+<section class="section-card settings-list narrow-card">
+  <div><span>🌐</span><div><strong>Language</strong><small>Interface language</small></div><span>English</span></div>
+  <div><span>🔐</span><div><strong>Sign-in security</strong><small>This prototype uses the demo OTP shown during sign-in.</small></div><a class="btn btn-soft" href="{{ url_for('profile.index') }}">My Profile</a></div>
+</section>
+{% endblock %}

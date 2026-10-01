@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Pay Bill · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Payment</span><h1 data-bill-heading>{{ details.label ~ ' Payment' if details else 'Pay Bill' }}</h1><p>Choose the category, its provider and your payment reference.</p></div></div>
+<section class="section-card form-card narrow-card">
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Bill / Service Category
+      <select name="category" data-bill-category required>
+        <option value="" {% if values.get('category', '') not in categories %}selected{% endif %}>Choose a category</option>
+        {% for slug, category in categories.items() %}
+        <option value="{{ slug }}" data-heading="{{ category.label }} Payment" data-account-label="{{ category.account_label }}" {% if values.get('category') == slug %}selected{% endif %}>{{ category.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <noscript><button type="submit" class="btn btn-light" name="action" value="choose-category" formnovalidate>Update category</button></noscript>
+    <label>Provider
+      <select name="provider" data-bill-provider required>
+        <option value="" {% if not values.get('provider') or not details or values.get('provider') not in details.providers %}selected{% endif %}>Choose a provider</option>
+        {% for slug, category in categories.items() %}
+          {% for provider in category.providers %}
+          <option value="{{ provider }}" data-category="{{ slug }}" {% if slug != values.get('category') %}hidden disabled{% elif values.get('provider') == provider %}selected{% endif %}>{{ provider }}</option>
+          {% endfor %}
+        {% endfor %}
+      </select>
+    </label>
+    <label><span data-bill-account-label>{{ details.account_label if details else 'Account / Payment Reference' }}</span>
+      <input name="account_no" value="{{ values.get('account_no', '') }}" placeholder="Enter the reference from your bill" minlength="2" maxlength="60" required>
+    </label>
+    <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="620.00" required></label>
+    <p class="muted">Demo payment: your wallet balance will be reduced and a receipt will appear in History. No payment is sent to the provider.</p>
+    <button class="btn btn-primary" type="submit">Pay with Demo Balance</button>
+  </form>
+</section>
+{% endblock %}

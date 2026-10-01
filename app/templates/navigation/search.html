@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Search | {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Find a service</span><h1>{{ 'Search results' if query else 'Explore services' }}</h1><p>{% if query %}Results for &ldquo;{{ query }}&rdquo;{% else %}Search by service, bill type, provider, or transaction reference.{% endif %}</p></div></div>
+<div class="period-presets search-presets">
+  {% for label, term in [('All services', ''), ('Recharge', 'recharge'), ('Bills', 'bill'), ('Gas', 'gas'), ('Financial services', 'financial')] %}<a class="btn btn-soft" href="{{ url_for('navigation.search', q=term) }}">{{ label }}</a>{% endfor %}
+</div>
+<section class="section-card">
+  <div class="section-head"><h2>Services <span class="muted">({{ services|length }})</span></h2></div>
+  {% if services %}<div class="service-grid large-services search-service-grid">
+    {% for service in services %}<a class="service-tile" href="{{ service.href }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><strong>{{ service.title }}</strong><small>{{ service.description }}</small></a>{% endfor %}
+  </div>{% else %}<p class="muted">No services match this search. Try a bill type such as gas, a provider name, or recharge.</p>{% endif %}
+</section>
+{% if query %}
+<section class="section-card">
+  <div class="section-head"><h2>Your transactions <span class="muted">({{ transaction_page.total }})</span></h2><a href="{{ url_for('wallet.history') }}">Full history</a></div>
+  {% if transaction_page.items %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Date (BD)</th><th>Transaction</th><th>Provider / Recipient</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+  {% for tx in transaction_page.items %}<tr><td>{{ ui_local_time(tx.created_at).strftime('%d %b %Y, %H:%M') }}</td><td>{{ tx.title }}</td><td>{{ tx.counterparty or '-' }}</td><td>{{ tx.reference or '-' }}</td><td class="{{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</td><td>{{ tx.status|replace('_', ' ')|title }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="muted">No matching transactions in your history.</p>{% endif %}
+  {% if transaction_page.pages > 1 %}<nav class="pagination" aria-label="Search result pages">{% if transaction_page.has_prev %}<a class="btn btn-soft" href="{{ url_for('navigation.search', q=query, page=transaction_page.prev_num) }}">Previous</a>{% endif %}<span>Page {{ transaction_page.page }} of {{ transaction_page.pages }}</span>{% if transaction_page.has_next %}<a class="btn btn-soft" href="{{ url_for('navigation.search', q=query, page=transaction_page.next_num) }}">Next</a>{% endif %}</nav>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

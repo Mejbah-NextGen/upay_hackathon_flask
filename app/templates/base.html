@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffd400">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="{% if not current_user %}auth-body{% endif %}">
+{% if current_user %}
+{% set payment_active = active_service_group == 'payment' or request.endpoint in ['payments.index', 'payments.recharge'] %}
+{% set financial_active = active_service_group == 'financial' or request.endpoint in ['payments.financial_services', 'payments.savings', 'payments.request_money'] %}
+{% set other_active = active_service_group == 'other' or request.endpoint == 'payments.other_services' %}
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="brand" href="{{ url_for('dashboard.index') }}">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="{{ app_name }} logo">
+      <div><strong>{{ app_name }}</strong><small>Hackathon Prototype</small></div>
+    </a>
+    <nav class="side-nav">
+      <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}"><span aria-hidden="true">&#8962;</span>Dashboard</a>
+      <a class="nav-link {% if request.endpoint in ['wallet.send_money', 'wallet.cash_out'] %}active{% endif %}" href="{{ url_for('wallet.send_money') }}"><span aria-hidden="true">&#8599;</span>Transfer Money</a>
+      <a class="nav-link {% if payment_active %}active{% endif %}" href="{{ url_for('payments.index') }}"><span aria-hidden="true">&#9635;</span>Payment</a>
+      <a class="nav-link {% if request.endpoint == 'wallet.add_money' %}active{% endif %}" href="{{ url_for('wallet.add_money') }}"><span aria-hidden="true">&#65291;</span>Add Money</a>
+      <a class="nav-link {% if financial_active %}active{% endif %}" href="{{ url_for('payments.financial_services') }}"><span aria-hidden="true">&#8962;</span>Financial Services</a>
+      <a class="nav-link {% if other_active %}active{% endif %}" href="{{ url_for('payments.other_services') }}"><span aria-hidden="true">&#9707;</span>Other Services</a>
+      <a class="nav-link {% if request.blueprint == 'profile' %}active{% endif %}" href="{{ url_for('profile.index') }}"><span aria-hidden="true">&#9817;</span>Profile</a>
+      <a class="nav-link {% if request.endpoint == 'wallet.history' %}active{% endif %}" href="{{ url_for('wallet.history') }}"><span aria-hidden="true">&#9677;</span>History</a>
+    </nav>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="nav-link nav-button" type="submit"><span aria-hidden="true">&#8677;</span>Logout</button>
+    </form>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <button class="icon-button mobile-only" id="menuToggle" type="button" aria-label="Toggle menu" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+      <form class="search-box" role="search" method="get" action="{{ url_for('navigation.search') }}">
+        <label class="sr-only" for="serviceSearch">Search services and transactions</label>
+        <span aria-hidden="true">&#9906;</span>
+        <input id="serviceSearch" type="search" name="q" maxlength="120" value="{{ request.args.get('q', '') if request.endpoint == 'navigation.search' else '' }}" placeholder="Search services, bills, etc.">
+        <button class="search-submit" type="submit" aria-label="Search">&#8594;</button>
+      </form>
+      <div class="top-actions">
+        <details class="notification-dropdown" id="notificationDropdown">
+          <summary class="icon-button notification-toggle" aria-label="Notifications{% if navbar_alerts.unread_count %}, {{ navbar_alerts.unread_count }} unread{% endif %}" aria-controls="notificationPanel" aria-expanded="false">
+            <span aria-hidden="true">&#128276;</span>
+            {% if navbar_alerts.unread_count %}<span class="notification-count" aria-hidden="true">{{ '99+' if navbar_alerts.unread_count > 99 else navbar_alerts.unread_count }}</span>{% endif %}
+          </summary>
+          <section class="notification-panel" id="notificationPanel" aria-label="Transaction notifications">
+            <div class="section-head"><h2>Notifications</h2><a href="{{ url_for('navigation.notifications') }}">View all</a></div>
+            {% if not navbar_alerts_enabled %}
+              <p class="muted">Transaction alerts are turned off. <a class="inline-link" href="{{ url_for('profile.settings') }}">Manage settings</a></p>
+            {% elif navbar_alerts['items'] %}
+              <div class="notification-list">
+                {% for tx in navbar_alerts['items'] %}
+                <a class="notification-item {% if tx.id > navbar_alerts.read_through %}unread{% endif %}" href="{{ url_for('navigation.notifications') }}">
+                  <span class="notification-dot" aria-hidden="true"></span>
+                  <div><strong>{{ tx.title }}</strong><small>{{ tx.counterparty or tx.reference or 'Wallet transaction' }} &middot; {{ tx.status|replace('_', ' ')|title }}</small><small>{{ ui_local_time(tx.created_at).strftime('%d %b, %H:%M') }} BD</small></div>
+                  <span class="tx-amount {{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</span>
+                </a>
+                {% endfor %}
+              </div>
+              {% if navbar_alerts.unread_count %}
+              <form method="post" action="{{ url_for('navigation.mark_read') }}" class="notification-footer">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-soft btn-block" type="submit">Mark all as read</button>
+              </form>
+              {% endif %}
+            {% else %}<p class="muted">No transactions yet. Your wallet activity will appear here.</p>{% endif %}
+          </section>
+        </details>
+        <a class="profile-chip" href="{{ url_for('profile.index') }}">
+          <div class="avatar">{{ current_user.full_name[0] }}</div>
+          <div class="profile-meta"><strong>{{ current_user.full_name }}</strong><small>{{ current_user.mobile }}</small></div>
+          <span aria-hidden="true">&#8964;</span>
+        </a>
+      </div>
+    </header>
+
+    <section class="page-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+</div>
+
+<nav class="mobile-bottom-nav" aria-label="Quick navigation">
+  <a href="{{ url_for('dashboard.index') }}" class="{% if request.endpoint == 'dashboard.index' %}active{% endif %}"><span aria-hidden="true">&#8962;</span><small>Home</small></a>
+  <a href="{{ url_for('payments.index') }}" class="{% if payment_active or financial_active or other_active %}active{% endif %}"><span aria-hidden="true">&#9638;</span><small>Services</small></a>
+  <a href="{{ url_for('wallet.send_money') }}" class="scan-action" aria-label="Send money"><span aria-hidden="true">&#8599;</span></a>
+  <a href="{{ url_for('wallet.history') }}" class="{% if request.endpoint == 'wallet.history' %}active{% endif %}"><span aria-hidden="true">&#9677;</span><small>History</small></a>
+  <a href="{{ url_for('profile.index') }}" class="{% if request.blueprint == 'profile' %}active{% endif %}"><span aria-hidden="true">&#8226;&#8226;&#8226;</span><small>More</small></a>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+{% else %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="auth-flashes flash-stack">
+      {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

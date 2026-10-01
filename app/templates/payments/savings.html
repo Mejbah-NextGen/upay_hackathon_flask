@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Savings Plan · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Savings Plan</h1><p>See how regular monthly contributions add up over time.</p></div></div>
+<section class="section-card form-card narrow-card">
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Monthly Contribution (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="1000.00" required></label>
+    <label>Duration (Months)<input name="months" value="{{ values.get('months', '12') }}" type="number" min="1" max="120" step="1" required></label>
+    <button class="btn btn-primary" type="submit">Calculate Savings</button>
+  </form>
+  {% if plan %}
+  <div class="section-head"><h2>Your Savings Plan</h2></div>
+  <p>৳ {{ '%.2f'|format(plan.monthly_amount) }} each month for {{ plan.months }} months.</p>
+  <p><strong>Total contributions: ৳ {{ '%.2f'|format(plan.total) }}</strong></p>
+  {% endif %}
+  <p class="muted">This calculator assumes regular contributions and excludes interest and fees. It does not open an account or move wallet balance.</p>
+</section>
+{% endblock %}

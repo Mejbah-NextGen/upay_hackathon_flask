@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}OTP Verification · {{ app_name }}{% endblock %}
+{% block auth_content %}
+<div class="auth-wrap single">
+  <div class="auth-card wide-auth-card">
+    <img class="auth-logo" src="{{ url_for('static', filename='img/logo.svg') }}" alt="logo">
+    <span class="eyebrow">Secure verification</span>
+    <h1>Verify your mobile</h1>
+    <p>Enter the 6-digit demo OTP for <strong>{{ mobile }}</strong>.</p>
+    <div class="otp-demo">Demo OTP: <strong>{{ demo_otp }}</strong></div>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>OTP<input name="otp" inputmode="numeric" maxlength="6" placeholder="123456" required></label>
+      <button class="btn btn-primary btn-block" type="submit">Verify & Continue</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

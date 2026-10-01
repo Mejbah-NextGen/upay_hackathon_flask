@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Profile · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Account</span><h1>My Profile</h1><p>Manage your demo account information.</p></div></div>
+<div class="profile-grid">
+  <section class="profile-summary section-card"><div class="avatar xl">{{ user.full_name[0] }}</div><h2>{{ user.full_name }}</h2><p>{{ user.mobile }}</p><span class="status-badge">✓ Verified Account</span><div class="profile-balance"><small>Wallet Balance</small><strong>৳ {{ '%.2f'|format(user.balance) }}</strong></div></section>
+  <section class="section-card form-card"><form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Full Name<input name="full_name" value="{{ request.form.get('full_name', user.full_name) }}" maxlength="120" required></label><label>Mobile Number<input value="{{ user.mobile }}" disabled></label><label>Email<input type="email" name="email" value="{{ request.form.get('email', user.email or '') }}" maxlength="120" placeholder="name@example.com"></label><button class="btn btn-primary" type="submit">Save Changes</button><a class="btn btn-soft" href="{{ url_for('profile.settings') }}">Settings</a></form></section>
+</div>
+{% endblock %}

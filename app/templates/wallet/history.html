@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Transaction History · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Records</span><h1>Transaction History</h1><p>Review wallet activity, references and fees in Bangladesh time.</p></div><a class="btn btn-soft" href="{{ url_for('dashboard.index', days=days or 1) }}">Dashboard</a></div>
+<section class="section-card">
+  <form class="form-stack history-filters" method="get" action="{{ url_for('wallet.history') }}">
+    <label>Period
+      <select name="days">
+        {% for count, label in [(none, 'All history'), (1, 'Today'), (7, 'Last 7 days'), (30, 'Last 30 days'), (90, 'Last 90 days')] %}
+        <option value="{{ count or '' }}"{% if days == count %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+        {% if days and days not in [1, 7, 30, 90] %}<option value="{{ days }}" selected>Last {{ days }} days</option>{% endif %}
+      </select>
+    </label>
+    <label>Direction
+      <select name="direction">
+        <option value=""{% if not direction %} selected{% endif %}>All transactions</option>
+        <option value="IN"{% if direction == 'IN' %} selected{% endif %}>Money in</option>
+        <option value="OUT"{% if direction == 'OUT' %} selected{% endif %}>Money out</option>
+      </select>
+    </label>
+    <label>Type
+      <select name="kind">
+        <option value=""{% if not kind %} selected{% endif %}>All types</option>
+        <option value="payments"{% if kind == 'payments' %} selected{% endif %}>Bill payments and recharge</option>
+        {% for item in kinds %}<option value="{{ item }}"{% if kind == item %} selected{% endif %}>{{ item|replace('_', ' ')|title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Search history
+      <input name="q" type="search" value="{{ query }}" maxlength="100" placeholder="Provider, number or reference">
+    </label>
+    <div class="history-filter-actions"><button type="submit" class="btn btn-primary">Apply Filters</button><a class="btn btn-soft" href="{{ url_for('wallet.history') }}">Reset</a></div>
+  </form>
+</section>
+<section class="section-card">
+  <div class="section-head"><h2>{{ 'Today' if days == 1 else ('Last ' ~ days ~ ' days' if days else 'All history') }}</h2>{% if dates %}<span class="muted">{{ dates[0].strftime('%d %b %Y') }}{% if days != 1 %} – {{ dates[1].strftime('%d %b %Y') }}{% endif %}</span>{% endif %}</div>
+  <div class="history-summary">
+    <strong>{{ totals.transaction_count }} transaction{{ '' if totals.transaction_count == 1 else 's' }}</strong>
+    <span class="credit">Money in: ৳ {{ '%.2f'|format(totals.incoming_total) }}</span>
+    <span class="debit">Money out with fees: ৳ {{ '%.2f'|format(totals.outgoing_total) }}</span>
+  </div>
+  <p class="muted">Summary totals include completed transactions only. Transaction count includes every status. Dates and times use Bangladesh time (UTC+6).</p>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Date (BD)</th><th>Type</th><th>Counterparty</th><th>Reference</th><th>Status</th><th>Amount</th><th>Fee</th><th>Wallet Change</th></tr></thead><tbody>
+    {% for tx in transactions %}
+    <tr>
+      <td>{{ local_time(tx.created_at).strftime('%d %b %Y, %I:%M %p') }}</td>
+      <td>{{ tx.title }}{% if tx.note %}<br><small class="muted">{{ tx.note }}</small>{% endif %}</td>
+      <td>{{ tx.counterparty or 'Wallet' }}</td><td>{{ tx.reference or '—' }}</td>
+      <td><span class="status-badge {{ 'status-success' if tx.status == 'SUCCESS' else 'status-other' }} status-{{ tx.status|lower }}">{{ tx.status|replace('_', ' ')|title }}</span></td>
+      <td>৳ {{ '%.2f'|format(tx.amount) }}</td><td>৳ {{ '%.2f'|format(tx.fee) }}</td>
+      <td class="{{ 'credit' if tx.direction == 'IN' else 'debit' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}৳ {{ '%.2f'|format(tx.amount if tx.direction == 'IN' else tx.amount + tx.fee) }}{% else %}৳ 0.00{% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="8">No transactions match these filters.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}
