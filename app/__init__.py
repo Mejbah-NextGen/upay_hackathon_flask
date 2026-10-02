@@ -1,7 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 
-from flask import Flask, render_template, session
+from flask import Flask, render_template, request, session
 
 from config import DevelopmentConfig
 from app.container import build_container, get_container
@@ -65,7 +65,7 @@ def create_app(config_object=DevelopmentConfig):
     @app.context_processor
     def inject_global_ui():
         from app.auth_helpers import current_user
-        from app.services.navigation_service import notification_summary
+        from app.services.navigation_service import notification_summary, service_return_target
         from app.services.preference_service import get_preferences
         from app.services.reporting_service import local_datetime
         from app.services.localization import translate, BANGLA
@@ -82,6 +82,7 @@ def create_app(config_object=DevelopmentConfig):
             "current_user": user,
             "navbar_alerts": alerts,
             "navbar_alerts_enabled": alerts_enabled,
+            "service_return": service_return_target(request.args.get("return_to", "")),
             "ui_local_time": local_datetime,
             "profile_details": get_container().profile.get_details(user.id) if user else None,
             "ui_language": session.get("language", "en"),

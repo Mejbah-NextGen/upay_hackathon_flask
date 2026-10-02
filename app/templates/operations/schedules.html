@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Auto Pay & Plans · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Future payments</span><h1>Auto Pay & Plans</h1><p>Plan payments through {{ last_date.strftime('%d %B %Y') }}. Each installment appears in Report.</p></div><a class="btn btn-light" href="{{ url_for('wallet.history') }}">Open Report</a></div>
+<div class="page-heading"><div><span class="eyebrow">Future payments</span><h1>Auto Pay & Plans</h1><p>Plan payments through {{ last_date.strftime('%d %B %Y') }}. Each installment appears in Report.</p></div><a class="btn btn-light" href="{{ url_for('wallet.history', plan_mode='auto_pay') }}">Open Report</a></div>
 <div class="form-page-grid">
   <section class="section-card form-card">
     <h2>Plan a payment</h2>

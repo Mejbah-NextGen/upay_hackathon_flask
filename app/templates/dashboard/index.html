@@ -1,23 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="stats-grid" aria-label="Wallet summary">
-  <article class="stat-card"><div class="stat-icon blue">৳</div><div><small>Current Balance</small><h3>৳ {{ '%.2f'|format(stats.balance) }}</h3><a href="{{ url_for('wallet.add_money') }}">Add Money</a></div></article>
-  <article class="stat-card"><div class="stat-icon green">↗</div><div><small>{{ stats.card_prefix }} Transactions</small><h3>{{ stats.transaction_count }}</h3><a href="{{ url_for('wallet.history', days=days) }}">View Transactions</a></div></article>
-  <article class="stat-card"><div class="stat-icon pink">৳</div><div><small>{{ stats.card_prefix }} Payments</small><h3>৳ {{ '%.2f'|format(stats.payment_total) }}</h3><a href="{{ url_for('wallet.history', days=days, kind='payments') }}">Payment Details</a></div></article>
-  <article class="stat-card"><div class="stat-icon purple">↗</div><div><small>{{ stats.card_prefix }} Money Out</small><h3>৳ {{ '%.2f'|format(stats.outgoing_total) }}</h3><a href="{{ url_for('wallet.history', days=days, direction='OUT') }}">View Money Out</a></div></article>
-</section>
-<p class="muted dashboard-summary-note">Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.</p>
-
-<section class="section-card quick-pay-card">
-  <div class="section-head"><h2>Quick Payment</h2></div>
-  <div class="quick-pay-grid">
-    {% for service in quick_payments %}
-    <a href="{{ url_for(service.endpoint, **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><span>{{ service.label }}</span></a>
-    {% endfor %}
-  </div>
-</section>
-
 <section class="hero-banner">
   <div>
     <span class="eyebrow dark">Wallet Demo</span>
@@ -37,11 +20,30 @@
   </div>
 </section>
 
+<section class="stats-grid" aria-label="Wallet summary">
+  <article class="stat-card"><div class="stat-icon blue">৳</div><div><small>Current Balance</small><h3>৳ {{ '%.2f'|format(stats.balance) }}</h3><a href="{{ url_for('wallet.add_money') }}">Add Money</a></div></article>
+  <article class="stat-card"><div class="stat-icon green">↗</div><div><small>{{ stats.card_prefix }} Transactions</small><h3>{{ stats.transaction_count }}</h3><a href="{{ url_for('wallet.history', days=days) }}">View Transactions</a></div></article>
+  <article class="stat-card"><div class="stat-icon pink">৳</div><div><small>{{ stats.card_prefix }} Payments</small><h3>৳ {{ '%.2f'|format(stats.payment_total) }}</h3><a href="{{ url_for('wallet.history', days=days, kind='payments') }}">Payment Details</a></div></article>
+  <article class="stat-card"><div class="stat-icon purple">↗</div><div><small>{{ stats.card_prefix }} Money Out</small><h3>৳ {{ '%.2f'|format(stats.outgoing_total) }}</h3><a href="{{ url_for('wallet.history', days=days, direction='OUT') }}">View Money Out</a></div></article>
+</section>
+<p class="muted dashboard-summary-note">Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.</p>
+
+<section class="section-card quick-pay-card">
+  <div class="section-head"><h2>Quick Payment</h2></div>
+  <div class="quick-pay-grid">
+    {% for service in quick_payments %}
+    <a href="{{ url_for(service.endpoint, return_to=url_for('dashboard.index', days=days), **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><span>{{ service.label }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+
+
+
 <section class="section-card">
   <div class="section-head"><div><span class="eyebrow">Popular</span><h2>Quick Services</h2></div><a href="{{ url_for('navigation.search') }}">See All →</a></div>
   <div class="service-grid">
     {% for service in services %}
-      <a class="service-tile" href="{{ url_for(service.endpoint, **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><strong>{{ service.label }}</strong></a>
+      <a class="service-tile" href="{{ url_for(service.endpoint, return_to=url_for('dashboard.index', days=days), **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><strong>{{ service.label }}</strong></a>
     {% endfor %}
   </div>
 </section>

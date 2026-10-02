@@ -111,6 +111,19 @@ def notifications():
     )
 
 
+@bp.get("/notifications/summary")
+@login_required
+def notification_state():
+    enabled = get_preferences(session["user_id"]).notifications_enabled
+    summary = notification_summary(session["user_id"])
+    response = jsonify(
+        unread_count=summary["unread_count"], navbar_enabled=enabled,
+        read_through=summary["read_through"], read_ids=sorted(summary["read_ids"]),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @bp.post("/notifications/read")
 @login_required
 def mark_read():

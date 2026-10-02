@@ -1,4 +1,68 @@
 (() => {
+  const translate = value => window.upayT ? window.upayT(value) : value;
+  document.querySelectorAll('[data-add-money-form]').forEach(form => {
+    const source = form.querySelector('[name="source"]');
+    const holder = form.querySelector('[data-funding-holder]');
+    const updateSource = () => {
+      form.querySelectorAll('[data-funding-fields]').forEach(group => {
+        const active = group.dataset.fundingFields === source.value;
+        group.hidden = !active;
+        group.querySelectorAll('input, select').forEach(input => {
+          input.disabled = !active;
+          input.required = active;
+          input.setCustomValidity('');
+        });
+      });
+      const needsHolder = source.value !== 'Agent';
+      holder.hidden = !needsHolder;
+      const input = holder.querySelector('input');
+      input.disabled = !needsHolder;
+      input.required = needsHolder;
+    };
+    const card = form.querySelector('[name="card_number"]');
+    const validateCard = () => {
+      if (card.disabled || !card.value) { card.setCustomValidity(''); return; }
+      const number = card.value.trim().replace(/[ -]/g, '');
+      let checksum = 0;
+      if (/^[0-9]{13,19}$/.test(number)) {
+        Array.from(number).reverse().forEach((digit, index) => {
+          let value = Number(digit);
+          if (index % 2) { value *= 2; if (value > 9) value -= 9; }
+          checksum += value;
+        });
+      }
+      const valid = /^[0-9]{13,19}$/.test(number) && new Set(number).size > 1 && checksum % 10 === 0;
+      card.setCustomValidity(valid ? '' : translate('Enter a valid demo card number. Sample: 4111 1111 1111 1111.'));
+    };
+    source.addEventListener('change', () => { updateSource(); validateCard(); });
+    card.addEventListener('input', validateCard);
+    updateSource();
+  });
+
+  document.querySelectorAll('[data-recharge-validation]').forEach(form => {
+    const operator = form.querySelector('[name="operator"]');
+    const mobile = form.querySelector('[name="mobile"]');
+    const status = form.querySelector('[data-recharge-operator-status]');
+    const prefixes = JSON.parse(form.dataset.operatorPrefixes);
+    const checkOperator = () => {
+      let number = mobile.value.trim().replace(/[\s()\-]/g, '');
+      if (number.startsWith('+88')) number = number.slice(3);
+      else if (number.startsWith('88') && number.length === 13) number = number.slice(2);
+      let message = '';
+      const expected = Object.keys(prefixes).find(name => prefixes[name].includes(number.slice(0, 3)));
+      if (number.length >= 3 && /^01[0-9]/.test(number)) {
+        if (!expected) message = 'Choose a supported recharge number beginning with 013–019.';
+        else if (operator.value && operator.value !== expected) message = `This demo number begins with ${number.slice(0, 3)}. Choose ${expected} for this recharge.`;
+      }
+      operator.setCustomValidity(translate(message));
+      status.textContent = translate(message || (expected ? `Number prefix ${number.slice(0, 3)}: ${expected}.` : 'The selected operator must match the number prefix in this demo.'));
+      status.dataset.state = message ? 'invalid' : '';
+    };
+    operator.addEventListener('change', checkOperator);
+    mobile.addEventListener('input', checkOperator);
+    checkOperator();
+  });
+
   document.querySelectorAll('[data-wallet-operation]').forEach(form => {
     const amount = form.querySelector('[name="amount"]');
     const rail = form.querySelector('[name="rail"]');

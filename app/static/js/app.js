@@ -21,9 +21,53 @@
 
   const notifications = document.getElementById('notificationDropdown');
   const notificationToggle = notifications?.querySelector('summary');
+  let notificationRequest = 0;
+  const refreshNotifications = async () => {
+    if (!notifications?.dataset.summaryEndpoint) return;
+    const revision = ++notificationRequest;
+    try {
+      const response = await fetch(notifications.dataset.summaryEndpoint, {
+        headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin'
+      });
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return;
+      const state = await response.json();
+      if (revision !== notificationRequest) return;
+      const count = Number(state.unread_count);
+      if (!Number.isSafeInteger(count) || count < 0) return;
+      const navbarCount = state.navbar_enabled ? count : 0;
+      let badge = notificationToggle?.querySelector('.notification-count');
+      if (navbarCount) {
+        if (!badge && notificationToggle) {
+          badge = document.createElement('span');
+          badge.className = 'notification-count';
+          badge.setAttribute('aria-hidden', 'true');
+          notificationToggle.append(badge);
+        }
+        if (badge) badge.textContent = navbarCount > 99 ? '99+' : String(navbarCount);
+      } else badge?.remove();
+      notificationToggle?.setAttribute('aria-label', `${t('Notifications')}${navbarCount ? `, ${navbarCount} ${t('Unread')}` : ''}`);
+      const readIds = new Set(state.read_ids.map(Number));
+      document.querySelectorAll('[data-notification-id]').forEach(item => {
+        const id = Number(item.dataset.notificationId);
+        const unread = id > Number(state.read_through) && !readIds.has(id);
+        item.classList.toggle('unread', unread);
+        const dot = item.querySelector('.notification-dot[aria-label]');
+        dot?.setAttribute('aria-label', t(unread ? 'Unread' : 'Read'));
+      });
+      document.querySelectorAll('[data-notification-read-all]').forEach(form => { form.hidden = !count; });
+      document.querySelectorAll('[data-notification-read-label]').forEach(button => {
+        button.textContent = `${t('Mark all as read')} (${count})`;
+      });
+    } catch (_) { /* Keep the last server-rendered state when offline. */ }
+  };
   notifications?.addEventListener('toggle', () => {
     notificationToggle?.setAttribute('aria-expanded', String(notifications.open));
+    if (notifications.open) refreshNotifications();
   });
+  // Back/forward cache and other tabs can retain an old badge after a receipt is read.
+  window.addEventListener('pageshow', refreshNotifications);
+  window.addEventListener('focus', refreshNotifications);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotifications(); });
   document.addEventListener('click', event => {
     if (notifications?.open && !notifications.contains(event.target)) notifications.open = false;
   });

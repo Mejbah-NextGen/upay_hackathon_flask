@@ -21,7 +21,8 @@ from app.services.export_service import (
     schedule_receipt_jpg, schedule_receipt_pdf, schedule_receipt_summary,
 )
 from app.services.reporting_service import (
-    filter_schedules, filter_transactions, local_datetime, parse_days, period_dates,
+    bill_category, chart_selection_description, filter_chart_transactions, filter_schedules,
+    filter_transactions, local_datetime, parse_chart_selection, parse_days, period_dates,
     report_visualization, schedule_totals, transaction_totals, wallet_change,
 )
 from app.services.wallet_catalog import DEMO_ATMS, DEMO_BANKS
@@ -96,13 +97,19 @@ def send_money():
 @login_required
 def add_money():
     if request.method == "GET":
-        return render_template("wallet/add_money.html", operation_token=uuid4().hex)
+        return render_template("wallet/add_money.html", operation_token=uuid4().hex, banks=DEMO_BANKS)
+    if request.form.get("action") == "choose-source":
+        return render_template("wallet/add_money.html", operation_token=uuid4().hex, banks=DEMO_BANKS)
     return _handle(
         lambda: get_container().wallet.add_money(
-            session["user_id"], request.form.get("source", ""), request.form.get("amount", ""), commit=False,
+            session["user_id"], request.form.get("source", ""), request.form.get("amount", ""),
+            bank=request.form.get("bank", ""), account_number=request.form.get("account_number", ""),
+            card_number=request.form.get("card_number", ""), holder_name=request.form.get("holder_name", ""),
+            agent_number=request.form.get("agent_number", ""), commit=False,
         ),
         "Money added successfully.",
         "wallet/add_money.html",
+        banks=DEMO_BANKS,
     )
 
 
@@ -180,6 +187,28 @@ def _date_filter(name):
 def _report_context():
     all_txs = list(get_container().transactions.all_for_user(session["user_id"]))
     all_schedules = ScheduledPayment.query.filter_by(user_id=session["user_id"]).all()
+    from app.domain.payment_plans import PaymentInvoice
+    from app.services.service_catalog import BILL_CATEGORIES
+
+    invoice_categories = {item.transaction_id: item.category for item in PaymentInvoice.query.filter_by(user_id=session["user_id"]).all()}
+    plan_mode = request.args.get("plan_mode", "")
+    if plan_mode not in {"auto_pay", "manual"}:
+        plan_mode = ""
+    if plan_mode:
+        all_schedules = [item for item in all_schedules if bool(item.auto_pay) == (plan_mode == "auto_pay")]
+        planned_ids = {item.transaction_id for item in all_schedules if item.transaction_id is not None}
+        all_txs = [tx for tx in all_txs if tx.id in planned_ids]
+    category = request.args.get("category", "")
+    if category not in BILL_CATEGORIES:
+        category = ""
+    if category:
+        category_matches = lambda value: value.startswith("education") if category == "education" else value == category
+        all_txs = [tx for tx in all_txs if category_matches(bill_category(tx, invoice_categories))]
+        all_schedules = [item for item in all_schedules if item.kind == "BILL_PAYMENT" and category_matches(item.category)]
+    try:
+        chart_selection = parse_chart_selection(request.args.get("chart_selection", ""))
+    except ValueError as exc:
+        abort(400, description=str(exc))
     days = parse_days(request.args.get("days"), default=None)
     start_date, end_date = _date_filter("start_date"), _date_filter("end_date")
     if start_date and end_date and start_date > end_date:
@@ -206,21 +235,29 @@ def _report_context():
         schedules = []
     elif scope == "scheduled":
         txs = []
+    if chart_selection:
+        txs = filter_chart_transactions(txs, chart_selection, invoice_categories)
+        schedules = []
+        scope = "transactions"
     dates = period_dates(days) if days is not None else None
     filter_description = "; ".join([
         f"Historical period: last {days} calendar days" if days else "Historical period: all stored activity",
         f"Date range: {start_date or 'any'} to {end_date or 'any'}",
         f"Records: {scope}", f"Direction: {direction or 'all'}", f"Type: {kind or 'all'}",
+        f"Bill category: {'Education (all levels)' if category == 'education' else BILL_CATEGORIES[category]['label'] if category else 'all'}",
+        f"Payment plans: {plan_mode.replace('_', ' ') if plan_mode else 'all activity'}",
         f"Status: {status or 'all'}", f"Search: {query or 'none'}",
+        f"Chart segment: {chart_selection_description(chart_selection)}",
         "Schedules use due dates; the historical period preset applies to recorded transactions only",
     ])
-    export_args = {"days": days or "", "start_date": start_date.isoformat() if start_date else "", "end_date": end_date.isoformat() if end_date else "", "direction": direction, "kind": kind, "status": status, "q": query, "scope": scope}
+    export_args = {"days": days or "", "start_date": start_date.isoformat() if start_date else "", "end_date": end_date.isoformat() if end_date else "", "direction": direction, "kind": kind, "category": category, "plan_mode": plan_mode, "status": status, "q": query, "scope": scope, "chart_selection": json.dumps(chart_selection, separators=(",", ":")) if chart_selection else ""}
     return dict(
         transactions=txs, schedules=schedules, totals=transaction_totals(txs), schedule_totals=schedule_totals(schedules), days=days,
         direction=direction, kind=kind, kinds=kinds, query=query, dates=dates, status=status,
         start_date=start_date, end_date=end_date, scope=scope, export_args=export_args,
+        category=category, bill_categories=BILL_CATEGORIES, plan_mode=plan_mode,
         local_time=local_datetime, wallet_change=wallet_change, filter_description=filter_description,
-        analytics=report_visualization(txs),
+        analytics=report_visualization(txs, invoice_categories),
     )
 
 
@@ -256,6 +293,8 @@ def _owned_transaction(transaction_id):
 @login_required
 def receipt(transaction_id):
     transaction = _owned_transaction(transaction_id)
+    from app.services.navigation_service import mark_notification_read
+    mark_notification_read(session["user_id"], transaction.id)
     from app.domain.payment_plans import PaymentInvoice
     invoice = PaymentInvoice.query.filter_by(transaction_id=transaction.id, user_id=session["user_id"]).first()
     return render_template("wallet/receipt.html", tx=transaction, summary=receipt_summary(transaction), wallet_change=wallet_change(transaction), local_time=local_datetime, payment_invoice=invoice)

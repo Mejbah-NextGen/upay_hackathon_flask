@@ -110,3 +110,31 @@ from app.services.wallet_catalog import DEMO_ATMS, DEMO_BANKS
 
 WALLET_BANGLA.update({name: f"ডেমো ব্যাংক {index:02d} — {city}" for index, (name, city) in enumerate(zip(DEMO_BANKS, _BANK_CITIES), 1)})
 WALLET_BANGLA.update({name: f"ডেমো এটিএম — {place}" for name, place in zip(DEMO_ATMS.values(), _ATM_PLACES)})
+
+WALLET_BANGLA.update({
+    "Demo Bank Account Number": "ডেমো ব্যাংক অ্যাকাউন্ট নম্বর",
+    "Demo Card Number": "ডেমো কার্ড নম্বর",
+    "Account / Card Holder Name": "অ্যাকাউন্ট / কার্ডধারীর নাম",
+    "Agent Mobile Number": "এজেন্টের মোবাইল নম্বর",
+    "Choose a bank": "একটি ব্যাংক বাছুন",
+    "Update source": "অর্থের উৎস পরিবর্তন করুন",
+    "Demo account holder": "ডেমো অ্যাকাউন্টধারীর নাম",
+    "Use a sample card number for this demo. The card checksum is validated; only its last four digits appear in the receipt.": "এই ডেমোতে নমুনা কার্ড নম্বর ব্যবহার করুন। কার্ড নম্বর যাচাই করা হয়; রসিদে শুধু শেষ চারটি সংখ্যা দেখানো হয়।",
+    "This adds local demo funds using the supplied source details. Bank and card numbers are masked in stored records. Re-enter these numbers after an unsuccessful attempt.": "উৎসের তথ্য দিয়ে স্থানীয় ডেমো ব্যালেন্স যোগ হয়। সংরক্ষিত তথ্যে ব্যাংক ও কার্ডের পুরো নম্বর দেখানো হয় না। চেষ্টা ব্যর্থ হলে নম্বর আবার লিখুন।",
+    "Enter the source account or card holder name (2–120 characters).": "অর্থের উৎস অ্যাকাউন্ট বা কার্ডধারীর নাম লিখুন (২–১২০ অক্ষর)।",
+    "Enter a demo card number with 13–19 digits.": "১৩–১৯ সংখ্যার ডেমো কার্ড নম্বর লিখুন।",
+    "The demo card number did not pass its checksum.": "ডেমো কার্ড নম্বরের গাণিতিক যাচাই মেলেনি।",
+    "Enter a valid demo card number. Sample: 4111 1111 1111 1111.": "সঠিক ডেমো কার্ড নম্বর লিখুন। নমুনা: 4111 1111 1111 1111।",
+    "Choose a supported recharge number beginning with 013–019.": "013–019 দিয়ে শুরু হওয়া সমর্থিত রিচার্জ নম্বর লিখুন।",
+    "The selected operator must match the number prefix in this demo.": "এই ডেমোতে নম্বরের শুরুর অংশের সঙ্গে নির্বাচিত অপারেটর মিলতে হবে।",
+    "Payment type": "পেমেন্টের ধরন",
+    "Choose the provider and enter your payment reference.": "সেবাদাতা বেছে নিয়ে পেমেন্টের রেফারেন্স লিখুন।",
+    "This page only accepts the selected payment type. Open Pay Bill to choose another category.": "এই পৃষ্ঠায় শুধু নির্বাচিত ধরনের পেমেন্ট করা যায়। অন্য ধরন বাছতে বিল পেমেন্ট খুলুন।",
+})
+
+from app.services.validation import MOBILE_OPERATOR_PREFIXES
+
+for _operator, _prefixes in MOBILE_OPERATOR_PREFIXES.items():
+    for _prefix in _prefixes:
+        WALLET_BANGLA[f"This demo number begins with {_prefix}. Choose {_operator} for this recharge."] = f"এই ডেমো নম্বর {_prefix} দিয়ে শুরু। রিচার্জের জন্য {_operator} বাছুন।"
+        WALLET_BANGLA[f"Number prefix {_prefix}: {_operator}."] = f"নম্বরের শুরুর অংশ {_prefix}: {_operator}।"

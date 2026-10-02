@@ -12,6 +12,7 @@ from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS
 from app.services.wallet_service import WalletService
 from app.services.recipient_service import assert_not_blocked
 from app.services.payment_plans_service import SAVINGS_ANNUAL_RATE
+from app.services.validation import validate_recharge_operator
 
 
 class PaymentService:
@@ -24,6 +25,7 @@ class PaymentService:
             raise ValidationError("Choose a supported mobile operator.")
         mobile = AuthService.normalize_mobile(mobile)
         assert_not_blocked(mobile)
+        mobile = validate_recharge_operator(operator, mobile)
         return self.wallet.debit_for_payment(
             user_id,
             kind="MOBILE_RECHARGE",

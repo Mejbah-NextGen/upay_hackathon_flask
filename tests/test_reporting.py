@@ -1,14 +1,21 @@
 import unittest
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
+from io import BytesIO
+import json
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 from flask import template_rendered
+from openpyxl import load_workbook
+from pypdf import PdfReader
 
 from app.domain.models import Transaction, User
+from app.domain.operations import ScheduledPayment
+from app.domain.payment_plans import PaymentInvoice
 from app.extensions import db
 from app.services.reporting_service import (
-    LOCAL_TIMEZONE, dashboard_report, filter_transactions, local_datetime, parse_days,
+    LOCAL_TIMEZONE, dashboard_report, filter_chart_transactions, filter_transactions, local_datetime, parse_chart_selection, parse_days,
     period_dates, report_visualization,
 )
 from tests.helpers import AppTestCase
@@ -118,6 +125,26 @@ class ReportingUnitTests(unittest.TestCase):
         self.assertEqual(report_visualization([])['daily'], [])
         self.assertEqual(report_visualization([])['histogram'][-1]['cumulative_percent'], 0)
 
+    def test_chart_selections_use_local_dates_successful_ledger_and_fee_inclusive_bands(self):
+        rows = [
+            transaction(datetime(2026, 10, 1, 18), amount="499.00", fee="1.00"),
+            transaction(datetime(2026, 10, 1, 17, 59), amount="500.00"),
+            transaction(self.now, amount="500.00", status="FAILED"),
+            transaction(self.now, amount="500.00", direction="IN", kind="ADD_MONEY"),
+        ]
+        selection = parse_chart_selection(json.dumps({"mode": "daily", "start": "2026-10-02", "end": "2026-10-02", "direction": "OUT"}))
+        self.assertEqual(filter_chart_transactions(rows, selection), [rows[0]])
+        selection = parse_chart_selection(json.dumps({"mode": "amount", "lower": 500, "upper": 1000}))
+        self.assertEqual(filter_chart_transactions(rows, selection), rows[:2])
+        selection = parse_chart_selection(json.dumps({"mode": "cumulative", "end": "2026-10-02", "direction": "IN"}))
+        self.assertEqual(filter_chart_transactions(rows, selection), [rows[3]])
+
+    def test_invalid_or_nonfinite_chart_selections_are_rejected(self):
+        invalid = ["[]", "null", "not-json", json.dumps({"mode": "daily", "start": "2026-10-03", "end": "2026-10-02", "direction": "OUT"}), json.dumps({"mode": "amount", "lower": "NaN", "upper": 100}), json.dumps({"mode": "amount", "lower": 500, "upper": 500}), json.dumps({"mode": "category", "kind": "BILL_PAYMENT", "category": "unknown"}), json.dumps({"mode": "cumulative", "end": "invalid"})]
+        for raw in invalid:
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                parse_chart_selection(raw)
+
 
 class ReportingRouteTests(AppTestCase):
     def setUp(self):
@@ -206,6 +233,61 @@ class ReportingRouteTests(AppTestCase):
         response, context = self.get_context('/wallet/history?scope=scheduled')
         self.assertNotIn('reportChartData', response.get_data(as_text=True))
         self.assertEqual(context['analytics']['successful_count'], 0)
+
+    def test_pie_categories_use_owned_invoice_metadata_and_legacy_education_titles(self):
+        school = self.add_tx("BILL_PAYMENT", "Shared provider fee", "60.00", self.today_utc, counterparty="Shared provider")
+        education = self.add_tx("BILL_PAYMENT", "Education Payment", "70.00", self.today_utc, counterparty="Demo Examination Fees")
+        db.session.flush()
+        db.session.add(PaymentInvoice(user_id=self.user_id, transaction_id=school.id, invoice_number="SCHOOL-CHART", category="education-school", provider="Shared provider", account_reference="STUDENT-1"))
+        db.session.commit()
+        _, context = self.get_context("/wallet/report?kind=BILL_PAYMENT")
+        categories = {row["category"]: row for row in context["analytics"]["categories"]}
+        self.assertEqual(categories["education-school"]["label"], "School")
+        self.assertEqual(categories["education"]["amount"], 70.0)
+        _, context = self.get_context("/wallet/report?category=education-school")
+        self.assertEqual([tx.id for tx in context["transactions"]], [school.id])
+        _, context = self.get_context("/wallet/report?category=education")
+        self.assertEqual({tx.id for tx in context["transactions"]}, {school.id, education.id})
+        selection = {"mode": "category", "kind": "BILL_PAYMENT", "category": "education-school"}
+        response = self.client.get("/wallet/report/export?" + urlencode({"format": "xlsx", "chart_selection": json.dumps(selection)}))
+        workbook = load_workbook(BytesIO(response.data), data_only=True)
+        ids = [row[0] for row in workbook["Transactions"].iter_rows(min_row=8, values_only=True) if isinstance(row[0], int)]
+        self.assertEqual(ids, [school.id])
+
+    def test_auto_pay_reports_and_exports_exclude_manual_plans_and_unrelated_ledger(self):
+        ScheduledPayment.query.delete()
+        completed_tx = self.add_tx("BILL_PAYMENT", "Auto Plan Payment", "60.00", self.today_utc)
+        manual_tx = self.add_tx("BILL_PAYMENT", "Manual Plan Payment", "70.00", self.today_utc)
+        db.session.flush()
+        plans = []
+        for note, auto_pay, tx in [("Auto completed", True, completed_tx), ("Auto upcoming", True, None), ("Manual completed", False, manual_tx)]:
+            item = ScheduledPayment(user_id=self.user_id, kind="BILL_PAYMENT", recipient_number="ACCOUNT-1", provider="Titas Gas", category="gas", amount=Decimal("60.00"), frequency="ONE_TIME", auto_pay=auto_pay, due_at=self.today_utc + timedelta(days=3), status="COMPLETED" if tx else "SCHEDULED", transaction_id=tx.id if tx else None, recurrence_group=note, note=note)
+            db.session.add(item); plans.append(item)
+        db.session.commit()
+        response, context = self.get_context("/wallet/report?plan_mode=auto_pay")
+        self.assertEqual([tx.id for tx in context["transactions"]], [completed_tx.id])
+        self.assertEqual({item.id for item in context["schedules"]}, {item.id for item in plans[:2]})
+        self.assertIn("Auto Pay Report", response.get_data(as_text=True))
+        self.assertIn('name="plan_mode" value="auto_pay"', response.get_data(as_text=True))
+        self.assertIn("plan_mode=auto_pay", self.client.get("/schedules").get_data(as_text=True))
+        export = self.client.get("/wallet/report/export?format=xlsx&plan_mode=auto_pay")
+        workbook = load_workbook(BytesIO(export.data), data_only=True)
+        tx_ids = [row[0] for row in workbook["Transactions"].iter_rows(min_row=8, values_only=True) if isinstance(row[0], int)]
+        plan_ids = [row[0] for row in workbook["Scheduled payments"].iter_rows(min_row=8, values_only=True) if isinstance(row[0], int)]
+        self.assertEqual(tx_ids, [completed_tx.id])
+        self.assertEqual(set(plan_ids), {item.id for item in plans[:2]})
+
+    def test_segment_pdf_preserves_base_filters_and_excludes_failed_private_and_planned_records(self):
+        selection = {"mode": "daily", "start": local_datetime(self.today_utc).date().isoformat(), "end": local_datetime(self.today_utc).date().isoformat(), "direction": "OUT"}
+        params = {"format": "pdf", "days": 7, "kind": "CASH_OUT", "chart_selection": json.dumps(selection)}
+        response = self.client.get("/wallet/report/export?" + urlencode(params))
+        self.assertEqual(response.status_code, 200)
+        text = " ".join(page.extract_text() for page in PdfReader(BytesIO(response.data)).pages)
+        self.assertIn("Today's Cash Out", text)
+        self.assertIn("101.50", text)
+        for omitted in ("Today's Gas Bill", "Failed Bill", "Private Payment", "Older Recharge"):
+            self.assertNotIn(omitted, text)
+        self.assertEqual(self.client.get("/wallet/report/export?format=pdf&chart_selection=[]").status_code, 400)
 
 
 if __name__ == "__main__":

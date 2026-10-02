@@ -2,7 +2,7 @@
 {% block title %}Report · {{ app_name }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
-<div class="page-heading"><div><span class="eyebrow">Wallet records</span><h1>Report</h1><p>Review transactions, upcoming payments, receipts and filtered exports.</p></div><a class="btn btn-soft" href="{{ url_for('operations.schedules') }}">Manage auto pay</a></div>
+<div class="page-heading"><div><span class="eyebrow">Wallet records</span><h1>{{ 'Auto Pay Report' if plan_mode == 'auto_pay' else 'Manual Plan Report' if plan_mode == 'manual' else 'Report' }}</h1><p>{{ 'Review only Auto Pay installments and their recorded payments.' if plan_mode == 'auto_pay' else 'Review transactions, upcoming payments, receipts and filtered exports.' }}</p></div><a class="btn btn-soft" href="{{ url_for('operations.schedules') }}">Manage auto pay</a></div>
 <section class="section-card">
   <form class="form-stack history-filters" method="get" action="{{ url_for('wallet.history') }}">
     <label>Historical period
@@ -12,6 +12,9 @@
         {% endfor %}
         {% if days and days not in [1, 7, 30, 90, 120] %}<option value="{{ days }}" selected>Last {{ days }} days</option>{% endif %}
       </select>
+    </label>
+    <label>Payment plans
+      <select name="plan_mode"><option value="">All activity</option><option value="auto_pay"{% if plan_mode == 'auto_pay' %} selected{% endif %}>Auto Pay only</option><option value="manual"{% if plan_mode == 'manual' %} selected{% endif %}>Manual plans only</option></select>
     </label>
     <label>Records
       <select name="scope">
@@ -38,6 +41,9 @@
         {% for value in ['SUCCESS', 'PENDING', 'FAILED', 'DEFERRED', 'SCHEDULED', 'COMPLETED', 'CANCELLED'] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ value|replace('_', ' ')|title }}</option>{% endfor %}
       </select>
     </label>
+    <label>Bill category
+      <select name="category"><option value="">All bill categories</option>{% for slug, details in bill_categories.items() %}<option value="{{ slug }}"{% if category == slug %} selected{% endif %}>{{ 'Education (all levels)' if slug == 'education' else details.label }}</option>{% endfor %}</select>
+    </label>
     <label>Start date (BD)<input name="start_date" type="date" value="{{ start_date.isoformat() if start_date else '' }}"></label>
     <label>End date (BD)<input name="end_date" type="date" value="{{ end_date.isoformat() if end_date else '' }}"></label>
     <label>Search records<input name="q" type="search" value="{{ query }}" maxlength="100" placeholder="Name, provider, number or reference"></label>
@@ -58,7 +64,7 @@
 {% if scope != 'scheduled' %}
 <section class="section-card report-analysis" aria-labelledby="reportAnalysisTitle">
   <div class="section-head"><div><span class="eyebrow">{{ t('Filtered account insights') }}</span><h2 id="reportAnalysisTitle">{{ t('Your activity at a glance') }}</h2></div><span class="muted">{{ analytics.successful_count }} {{ t('successful transactions') }}</span></div>
-  <p class="muted">{{ t('All charts use the date, type, direction, status and search filters above. Money out includes fees. Failed and pending records are excluded.') }}</p>
+  <p class="muted">{{ t('All charts use the date, type, direction, status and search filters above. Money out includes fees. Failed and pending records are excluded.') }} {{ t('Tap or click a chart segment to view its transactions and export that selection.') }}</p>
   {% if analytics.successful_count %}
   <div class="report-insights">
     <div><span>{{ t('Net wallet change') }}</span><strong class="{{ 'credit' if analytics.net_change >= 0 else 'debit' }}">BDT {{ '%+.2f'|format(analytics.net_change) }}</strong><small>{{ t('Change in this selection, not your current balance') }}</small></div>
@@ -66,14 +72,25 @@
     <div><span>{{ t('Average money out') }}</span><strong>BDT {{ '%.2f'|format(analytics.outgoing_total / analytics.outgoing_count if analytics.outgoing_count else 0) }}</strong><small>{{ analytics.outgoing_count }} {{ t('successful outgoing transactions') }}</small></div>
   </div>
   <div class="report-chart-grid">
-    <figure class="report-chart-card"><figcaption><h3>{{ t('Money in and out') }}</h3><p>{{ t('Bar chart by Bangladesh date; long periods are grouped.') }}</p></figcaption><div id="reportBarChart" class="report-chart" role="img" aria-label="{{ t('Money in and money out bar chart') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span></div></figure>
-    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative activity') }}</h3><p>{{ t('Running totals within your filtered selection; starts at zero.') }}</p></figcaption><div id="reportCumulativeChart" class="report-chart" role="img" aria-label="{{ t('Cumulative money in, money out and net change graph') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Net change') }}</span></div></figure>
-    <figure class="report-chart-card"><figcaption><h3>{{ t('Spending by category') }}</h3><p>{{ t('Pie chart of successful money out, including fees.') }}</p></figcaption><div id="reportPieChart" class="report-chart" role="img" aria-label="{{ t('Spending category pie chart') }}"></div><div id="reportPieLegend" class="report-chart-legend"></div></figure>
-    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative histogram') }}</h3><p>{{ t('Bars count money-out amounts in BDT bands. The line shows the cumulative share.') }}</p></figcaption><div id="reportHistogramChart" class="report-chart" role="img" aria-label="{{ t('Money out amount histogram with cumulative percentage') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-out"></i>{{ t('Transaction count') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Cumulative percentage') }}</span></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Money in and out') }}</h3><p>{{ t('Bar chart by Bangladesh date; long periods are grouped.') }}</p></figcaption><div id="reportBarChart" class="report-chart" role="group" aria-label="{{ t('Money in and money out bar chart') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative activity') }}</h3><p>{{ t('Running totals within your filtered selection; starts at zero.') }}</p></figcaption><div id="reportCumulativeChart" class="report-chart" role="group" aria-label="{{ t('Cumulative money in, money out and net change graph') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Net change') }}</span></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Spending by category') }}</h3><p>{{ t('Pie chart of successful money out, including fees.') }}</p></figcaption><div id="reportPieChart" class="report-chart" role="group" aria-label="{{ t('Spending category pie chart') }}"></div><div id="reportPieLegend" class="report-chart-legend"></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative histogram') }}</h3><p>{{ t('Bars count money-out amounts in BDT bands. The line shows the cumulative share.') }}</p></figcaption><div id="reportHistogramChart" class="report-chart" role="group" aria-label="{{ t('Money out amount histogram with cumulative percentage') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-out"></i>{{ t('Transaction count') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Cumulative percentage') }}</span></div></figure>
   </div>
   <details class="report-chart-data"><summary>{{ t('View chart data') }}</summary><div class="table-wrap"><table class="data-table"><thead><tr><th>{{ t('Date (BD)') }}</th><th>{{ t('Money in') }}</th><th>{{ t('Money out') }}</th><th>{{ t('Cumulative net change') }}</th></tr></thead><tbody>{% for row in analytics.daily %}<tr><td>{{ row.date }}</td><td>BDT {{ '%.2f'|format(row.incoming) }}</td><td>BDT {{ '%.2f'|format(row.outgoing) }}</td><td>BDT {{ '%.2f'|format(row.cumulative_net) }}</td></tr>{% endfor %}</tbody></table></div><div class="table-wrap"><table class="data-table"><thead><tr><th>{{ t('Amount band (BDT)') }}</th><th>{{ t('Transaction count') }}</th><th>{{ t('Cumulative percentage') }}</th></tr></thead><tbody>{% for row in analytics.histogram %}<tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.cumulative_percent }}%</td></tr>{% endfor %}</tbody></table></div></details>
   <script id="reportChartData" type="application/json">{{ analytics|tojson }}</script>
-  <script id="reportChartLabels" type="application/json">{{ {'incoming':t('Money in'), 'outgoing':t('Money out'), 'net':t('Net change'), 'empty':t('No successful money out matches these filters.'), 'transactions':t('Transaction count'), 'cumulative':t('Cumulative percentage')}|tojson }}</script>
+  <dialog id="reportSegmentDialog" class="report-segment-dialog" aria-labelledby="reportSegmentTitle" aria-describedby="reportSegmentSummary" data-receipt-url="{{ url_for('wallet.receipt', transaction_id=0) }}">
+    <div class="report-segment-heading"><h2 id="reportSegmentTitle">{{ t('Chart selection') }}</h2><button type="button" class="btn btn-soft" data-report-close aria-label="{{ t('Close chart details') }}">{{ t('Close') }}</button></div>
+    <p id="reportSegmentSummary" class="muted"></p>
+    <form class="report-export-form" method="get" action="{{ url_for('wallet.export_report') }}">
+      {% for name, value in export_args.items() if name not in ['scope', 'chart_selection'] %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <input type="hidden" name="scope" value="transactions"><input type="hidden" name="chart_selection" id="reportSegmentSelection" value="">
+      <label for="reportSegmentFormat">{{ t('Download format') }}</label><select name="format" id="reportSegmentFormat"><option value="xlsx">Excel (.xlsx)</option><option value="pdf">PDF (.pdf)</option></select><button type="submit" class="btn btn-primary" id="reportSegmentExport">{{ t('Download selection') }}</button>
+    </form>
+    <div class="table-wrap report-segment-table"><table class="data-table"><thead><tr><th>{{ t('Date (BD)') }}</th><th>{{ t('Type') }}</th><th>{{ t('Counterparty') }}</th><th>{{ t('Amount') }}</th><th>{{ t('Fee') }}</th><th>{{ t('Wallet change') }}</th><th>{{ t('Receipt') }}</th></tr></thead><tbody id="reportSegmentRows"></tbody></table></div>
+  </dialog>
+  <div class="report-segment-tooltip" id="reportSegmentTooltip" role="tooltip" hidden></div>
+  <script id="reportChartLabels" type="application/json">{{ {'incoming':t('Money in'), 'outgoing':t('Money out'), 'net':t('Net change'), 'empty':t('No successful money out matches these filters.'), 'transactions':t('Transaction count'), 'cumulative':t('Cumulative percentage'), 'details':t('Tap or click for details and exports'), 'selected':t('successful transactions in this selection'), 'noRows':t('No successful transactions in this selection.'), 'receipt':t('View summary'), 'fees':t('Fees'), 'through':t('Through'), 'amountBand':t('Amount band')}|tojson }}</script>
   <script src="{{ url_for('static', filename='js/reports.js') }}" defer></script>
   {% else %}<p class="empty-state">{{ t('No successful transactions match these filters. Change the date or other filters to analyze your activity.') }}</p>{% endif %}
 </section>

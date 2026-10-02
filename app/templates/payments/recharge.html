@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">Payment</span><h1>Mobile Recharge</h1><p>Choose an operator and recharge using demo balance.</p></div></div>
 <section class="section-card form-card narrow-card">
-  <form method="post" class="form-stack" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="MOBILE_RECHARGE">
+  <form method="post" class="form-stack" data-recharge-validation data-operator-prefixes='{{ operator_prefixes|tojson }}' data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="MOBILE_RECHARGE">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Operator
       <select name="operator" required>
@@ -13,10 +13,12 @@
     </label>
     <label>Mobile Number<input name="mobile" value="{{ values.get('mobile', '') }}" type="tel" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" maxlength="24" data-recipient-number aria-describedby="rechargeRecipientStatus" required></label>
     <p class="recipient-status" id="rechargeRecipientStatus" data-recipient-status role="status">Enter a number to check its registered name and safety status.</p>
+    <p class="muted" data-recharge-operator-status role="status" aria-live="polite">The selected operator must match the number prefix in this demo.</p>
     <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="100.00" required></label>
     <div class="amount-chips">{% for amount in amounts %}<button type="button" data-amount="{{ amount }}">৳{{ amount }}</button>{% endfor %}</div>
     <p class="muted">Demo recharge reduces wallet balance and appears in Report. No airtime is delivered.</p>
     <button class="btn btn-primary" type="submit">Recharge with Demo Balance</button>
   </form>
 </section>
+<script src="{{ url_for('static', filename='js/wallet.js') }}" defer></script>
 {% endblock %}

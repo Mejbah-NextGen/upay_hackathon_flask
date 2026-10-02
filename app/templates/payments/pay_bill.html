@@ -1,11 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Pay Bill · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Payment</span><h1 data-bill-heading>{{ details.label ~ ' Payment' if details else 'Pay Bill' }}</h1><p>Choose the category, its provider and your payment reference.</p></div></div>
+<div class="page-heading"><div><span class="eyebrow">Payment</span><h1 data-bill-heading>{{ details.label ~ ' Payment' if details else 'Pay Bill' }}</h1><p>{{ 'Choose the provider and enter your payment reference.' if locked_category else 'Choose the category, its provider and your payment reference.' }}</p></div></div>
 <section class="section-card form-card narrow-card">
   <form method="post" class="form-stack" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="BILL_PAYMENT">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="submission_token" value="{{ values.get('submission_token', '') }}">
+    {% if locked_category %}
+    <input type="hidden" name="category" value="{{ values.get('category', '') }}" data-bill-category-locked>
+    <p class="muted">Payment type: <strong>{{ details.label if details else 'Invalid category' }}</strong></p>
+    {% else %}
     <label>Bill / Service Category
       <select name="category" data-bill-category required>
         <option value="" {% if values.get('category', '') not in categories %}selected{% endif %}>Choose a category</option>
@@ -15,6 +19,7 @@
       </select>
     </label>
     <noscript><button type="submit" class="btn btn-light" name="action" value="choose-category" formnovalidate>Update category</button></noscript>
+    {% endif %}
     <label>Provider
       <select name="provider" data-bill-provider required>
         <option value="" {% if not values.get('provider') or not details or values.get('provider') not in details.providers %}selected{% endif %}>Choose a provider</option>
@@ -32,7 +37,7 @@
     <label>Bill Invoice Reference (Optional)<input name="invoice_reference" value="{{ values.get('invoice_reference', '') }}" minlength="2" maxlength="60" placeholder="Enter the invoice number printed on the bill"></label>
     <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="620.00" required></label>
     <p class="muted">A unique invoice number and transaction reference are generated for every completed payment. A supplied provider invoice cannot be paid twice. Demo payment reduces wallet balance; no payment is sent to the provider.</p>
-    {% set qr_kind = 'BILL_PAYMENT' %}{% set qr_reference = values.get('account_no', '') %}{% set qr_provider = values.get('provider', '') %}{% set qr_amount = values.get('amount', '') %}{% include 'components/qr.html' %}
+    {% set qr_kind = 'BILL_PAYMENT' %}{% set qr_reference = values.get('account_no', '') %}{% set qr_provider = values.get('provider', '') if details and values.get('provider') in details.providers else '' %}{% set qr_amount = values.get('amount', '') %}{% include 'components/qr.html' %}
     <button class="btn btn-primary" type="submit">Pay with Demo Balance</button>
   </form>
 </section>

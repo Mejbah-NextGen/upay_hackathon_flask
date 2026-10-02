@@ -117,12 +117,31 @@ class WalletService:
         self._finish(commit)
         return outgoing
 
-    def add_money(self, user_id: int, source: str, amount_raw, *, commit=True):
+    def add_money(self, user_id: int, source: str, amount_raw, *, bank="", account_number="", card_number="", holder_name="", agent_number="", commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)
         source = (source or "").strip()
         if source not in {"Bank Account", "Debit / Credit Card", "Agent"}:
             raise ValidationError("Choose a valid add-money source.")
+        if source in {"Bank Account", "Debit / Credit Card"}:
+            holder_name = str(holder_name or "").strip()
+            if not 2 <= len(holder_name) <= 120 or any(ord(character) < 32 for character in holder_name):
+                raise ValidationError("Enter the source account or card holder name (2–120 characters).")
+        if source == "Bank Account":
+            if bank not in DEMO_BANKS:
+                raise ValidationError("Choose a listed demo bank.")
+            account_number = str(account_number or "").strip()
+            if not re.fullmatch(r"[0-9]{6,20}", account_number):
+                raise ValidationError("Enter a demo bank account number with 6–20 digits.")
+            assert_not_blocked(account_number)
+            note = f"{bank}; account ending {account_number[-4:]}; holder: {holder_name}."
+        elif source == "Debit / Credit Card":
+            card_number = self._funding_card_number(card_number)
+            note = f"Demo card ending {card_number[-4:]}; holder: {holder_name}."
+        else:
+            agent_number = normalize_mobile(agent_number)
+            assert_not_blocked(agent_number)
+            note = f"Demo Agent: {agent_number}."
         self._credit(user.id, amount)
         tx = Transaction(
             user_id=user.id,
@@ -132,10 +151,28 @@ class WalletService:
             counterparty=source,
             reference=self._reference(),
             amount=amount,
+            note=note,
         )
         db.session.add(tx)
         self._finish(commit)
         return tx
+
+    @staticmethod
+    def _funding_card_number(value):
+        number = re.sub(r"[ -]", "", str(value or "").strip())
+        if not re.fullmatch(r"[0-9]{13,19}", number) or len(set(number)) == 1:
+            raise ValidationError("Enter a demo card number with 13–19 digits.")
+        checksum = 0
+        for index, digit in enumerate(reversed(number)):
+            value = int(digit)
+            if index % 2:
+                value *= 2
+                if value > 9:
+                    value -= 9
+            checksum += value
+        if checksum % 10:
+            raise ValidationError("The demo card number did not pass its checksum.")
+        return number
 
     @staticmethod
     def _cash_out_channel(channel):

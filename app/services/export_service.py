@@ -80,7 +80,7 @@ def _paragraph(value, style):
     return Paragraph(escape(str(value or "-")).replace("\n", "<br/>"), style)
 
 
-def _table(rows, widths, styles, *, header=True):
+def _table(rows, widths, styles, *, header=True, row_padding=7):
     from reportlab.lib import colors
     from reportlab.platypus import LongTable, TableStyle
 
@@ -89,7 +89,7 @@ def _table(rows, widths, styles, *, header=True):
     instructions = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), row_padding), ("BOTTOMPADDING", (0, 0), (-1, -1), row_padding),
         ("LINEBELOW", (0, 0), (-1, -1), 0.35, colors.HexColor("#dfe5ef")),
     ]
     if header:
@@ -99,6 +99,40 @@ def _table(rows, widths, styles, *, header=True):
         ])
     result.setStyle(TableStyle(instructions))
     return result
+
+
+def _draw_pdf_brand(pdf, width, height):
+    """Crisp vector version of the app's existing yellow/blue UpayX mark."""
+    from reportlab.lib import colors
+
+    pdf.saveState()
+    pdf.translate(36, height - 64)
+    pdf.scale(0.28, 0.28)
+    pdf.setFillColor(colors.white)
+    pdf.roundRect(0, 0, 120, 120, 28, fill=1, stroke=0)
+    for x, color in ((40, "#ffd400"), (80, "#0b63ce")):
+        pdf.setFillColor(colors.HexColor(color))
+        pdf.circle(x, 88, 12, fill=1, stroke=0)
+    pdf.setFillColor(colors.HexColor("#ffd400"))
+    yellow = pdf.beginPath()
+    yellow.moveTo(28, 72); yellow.lineTo(52, 72); yellow.lineTo(52, 48)
+    yellow.curveTo(52, 37, 58, 31, 68, 31); yellow.lineTo(68, 13)
+    yellow.curveTo(43, 13, 28, 26, 28, 48); yellow.close()
+    pdf.drawPath(yellow, fill=1, stroke=0)
+    pdf.setFillColor(colors.HexColor("#0b63ce"))
+    blue = pdf.beginPath()
+    blue.moveTo(68, 72); blue.lineTo(92, 72); blue.lineTo(92, 48)
+    blue.curveTo(92, 26, 78, 13, 54, 13); blue.lineTo(54, 31)
+    blue.curveTo(63, 31, 68, 36, 68, 48); blue.close()
+    pdf.drawPath(blue, fill=1, stroke=0)
+    pdf.restoreState()
+    pdf.saveState()
+    pdf.setFillColor(colors.HexColor("#0b63ce"))
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(78, height - 49, "UpayX")
+    pdf.setStrokeColor(colors.HexColor("#dfe5ef"))
+    pdf.line(36, height - 73, width - 36, height - 73)
+    pdf.restoreState()
 
 
 def _build_pdf(story, *, title, landscape=False):
@@ -121,7 +155,8 @@ def _build_pdf(story, *, title, landscape=False):
             count = len(self.saved_pages)
             for state in self.saved_pages:
                 self.__dict__.update(state)
-                width, _ = self._pagesize
+                width, height = self._pagesize
+                _draw_pdf_brand(self, width, height)
                 self.setFont(_pdf_font(), 8)
                 self.setFillColor(colors.HexColor("#586579"))
                 self.drawString(36, 21, "Demo wallet report | Bangladesh time (UTC+6) | BDT")
@@ -132,8 +167,8 @@ def _build_pdf(story, *, title, landscape=False):
     output = BytesIO()
     document = SimpleDocTemplate(
         output, pagesize=landscape_size(A4) if landscape else A4,
-        rightMargin=36, leftMargin=36, topMargin=34, bottomMargin=42,
-        title=title, author="Demo Wallet", allowSplitting=1,
+        rightMargin=36, leftMargin=36, topMargin=88, bottomMargin=42,
+        title=title, author="UpayX", allowSplitting=1,
     )
     document.build(story, canvasmaker=NumberedCanvas)
     return output.getvalue()
@@ -184,7 +219,7 @@ def _receipt_pdf(title, fields, summary, status, reference):
         _paragraph(title, styles["ReportTitle"]),
         _paragraph(f"Generated: {_generated_at()}", styles["ReportSmall"]),
         _paragraph(status.replace('_', ' ').title(), styles["ReportSection"]),
-        _table(fields, [170, 353], styles, header=False),
+        _table(fields, [170, 353], styles, header=False, row_padding=5),
         _paragraph("Record summary", styles["ReportSection"]),
         _paragraph(summary, styles["BodyText"]),
         Spacer(1, 8),
@@ -344,13 +379,13 @@ def report_pdf(user, transactions, schedules, filters, app_name):
         story.append(_table(scheduled_rows, [105, 120, 190, 110, 95, 150], styles))
     else:
         story.append(_paragraph("No scheduled payments match the selected filters.", styles["ReportSmall"]))
+    story.append(_paragraph("Field documentation", styles["ReportSection"]))
+    story.extend(_paragraph(text, styles["ReportSmall"]) for text in DOCUMENTATION)
     story.extend([
         PageBreak(), _paragraph("Report summary", styles["ReportTitle"]),
         _paragraph("Totals for the filtered records in this report", styles["ReportSmall"]),
         _table(_summary_rows(transactions, schedules), [400, 370], styles, header=False),
-        _paragraph("Field documentation", styles["ReportSection"]),
     ])
-    story.extend(_paragraph(text, styles["ReportSmall"]) for text in DOCUMENTATION)
     story.append(_paragraph("Report filters: " + filters, styles["ReportSmall"]))
     return _build_pdf(story, title="Filtered wallet activity report", landscape=True)
 

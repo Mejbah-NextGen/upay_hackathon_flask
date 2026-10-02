@@ -3,6 +3,7 @@ import re
 from app.domain.models import User
 from app.domain.preferences import UserPreference
 from app.extensions import db
+from app.services.wallet_catalog import DEMO_BANKS
 from tests.helpers import AppTestCase
 
 
@@ -74,5 +75,6 @@ class AccountTests(AppTestCase):
                 self.assertEqual(self.client.post(path, data={}).status_code, 400)
         response = self.client.get("/wallet/add-money")
         token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data).group(1).decode()
-        response = self.client.post("/wallet/add-money", data={"source": "Bank Account", "amount": "10", "csrf_token": token})
+        response = self.client.post("/wallet/add-money", data={"source": "Bank Account", "amount": "10", "csrf_token": token,
+            "bank": DEMO_BANKS[0], "account_number": "1234567890", "holder_name": "Demo Account Holder"})
         self.assertEqual(response.status_code, 302)

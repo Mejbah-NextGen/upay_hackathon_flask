@@ -49,7 +49,7 @@ def seed_demo_operations(user, *, now=None):
         kind = kinds[day.toordinal() % len(kinds)]
         amount = Decimal((day.toordinal() % 9 + 1) * 50).quantize(Decimal("0.01"))
         fee = (amount * Decimal("0.015")).quantize(Decimal("0.01")) if kind == "CASH_OUT" else Decimal("0.00")
-        counterparty = {"ADD_MONEY": "Bank Account", "SEND_MONEY": "Demo Recipient Ayesha", "RECEIVE_MONEY": "Demo Sender Karim", "CASH_OUT": DEMO_AGENT_MOBILE, "MOBILE_RECHARGE": f"Grameenphone • {DEMO_RECHARGE_MOBILE}", "BILL_PAYMENT": "DESCO Electricity • DEMO-METER-1001"}[kind]
+        counterparty = {"ADD_MONEY": "Bank Account", "SEND_MONEY": "Demo Recipient Ayesha", "RECEIVE_MONEY": "Demo Sender Karim", "CASH_OUT": DEMO_AGENT_MOBILE, "MOBILE_RECHARGE": f"Banglalink • {DEMO_RECHARGE_MOBILE}", "BILL_PAYMENT": "DESCO Electricity • DEMO-METER-1001"}[kind]
         title = labels[kind]
         if kind == "BILL_PAYMENT":
             category = list(BILL_CATEGORIES.values())[(day.toordinal() // len(kinds)) % len(BILL_CATEGORIES)]
@@ -66,7 +66,7 @@ def seed_demo_operations(user, *, now=None):
     demo_schedules = (
         (first_month.replace(day=5), "BILL_PAYMENT", "DEMO-METER-1001", "Demo Household Electricity", "DESCO Electricity", "electricity", "620.00", "MONTHLY", True, "electricity"),
         (second_month.replace(day=5), "BILL_PAYMENT", "DEMO-METER-1001", "Demo Household Electricity", "DESCO Electricity", "electricity", "620.00", "MONTHLY", True, "electricity"),
-        (first_month.replace(day=12), "MOBILE_RECHARGE", DEMO_RECHARGE_MOBILE, "Demo Subscriber Rafi", "Grameenphone", "", "200.00", "ONE_TIME", True, "recharge"),
+        (first_month.replace(day=12), "MOBILE_RECHARGE", DEMO_RECHARGE_MOBILE, "Demo Subscriber Rafi", "Banglalink", "", "200.00", "ONE_TIME", True, "recharge"),
         (second_month.replace(day=20), "SEND_MONEY", DEMO_RECIPIENT_MOBILE, "Demo Recipient Ayesha", "", "", "500.00", "ONE_TIME", False, "transfer"),
     )
     for day, kind, number, name, provider, category, amount, frequency, automatic, group in demo_schedules:

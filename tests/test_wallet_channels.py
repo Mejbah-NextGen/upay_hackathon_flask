@@ -165,7 +165,7 @@ class WalletChannelTests(AppTestCase):
 
     def test_submission_tokens_are_scoped_to_the_session_owner(self):
         token = self.form_token("/wallet/add-money")
-        values = {"operation_token": token, "source": "Bank Account", "amount": "10"}
+        values = {"operation_token": token, "source": "Bank Account", "amount": "10", "bank": DEMO_BANKS[0], "account_number": "1234567890", "holder_name": "Demo Account Holder"}
         first = self.client.post("/wallet/add-money", data=values)
         other = User(full_name="Separate Submitter", mobile="01898000005", balance=Decimal("0.00"))
         db.session.add(other)

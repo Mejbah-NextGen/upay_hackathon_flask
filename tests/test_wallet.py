@@ -21,7 +21,7 @@ class WalletTests(AppTestCase):
                 self.assertEqual(Transaction.query.count(), 0)
 
     def test_add_money_records_source_and_updates_balance(self):
-        response = self.client.post("/wallet/add-money", data={"source": "Debit / Credit Card", "amount": "125.25"})
+        response = self.client.post("/wallet/add-money", data={"source": "Debit / Credit Card", "amount": "125.25", "card_number": "4111 1111 1111 1111", "holder_name": "Demo Card Holder"})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.user.balance, Decimal("1125.25"))
         transaction = Transaction.query.one()

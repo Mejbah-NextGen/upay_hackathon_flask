@@ -10,6 +10,7 @@ from app.services.payment_plans_service import (
     pay_later_summary, repay_pay_later, save_savings_plan,
 )
 from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS, RECHARGE_AMOUNTS, SERVICE_GROUPS, services_for_group
+from app.services.validation import MOBILE_OPERATOR_PREFIXES
 
 bp = Blueprint("payments", __name__, url_prefix="/payments")
 
@@ -54,14 +55,18 @@ def recharge():
         except (ValidationError, InsufficientBalanceError) as exc:
             flash(str(exc), "danger")
             status = 400
-    return render_template("payments/recharge.html", values=values, operators=MOBILE_OPERATORS, amounts=RECHARGE_AMOUNTS, active_service_group="payment"), status
+    return render_template("payments/recharge.html", values=values, operators=MOBILE_OPERATORS, amounts=RECHARGE_AMOUNTS, operator_prefixes=MOBILE_OPERATOR_PREFIXES, active_service_group="payment"), status
 
 
 @bp.route("/pay-bill", methods=["GET", "POST"])
 @login_required
 def pay_bill():
+    locked_category = request.args.get("category", "").strip() if "category" in request.args else None
     values = request.form.to_dict() if request.method == "POST" else {"category": request.args.get("category", "electricity")}
     values.setdefault("submission_token", uuid4().hex)
+    category_mismatch = locked_category is not None and values.get("category", locked_category) != locked_category
+    if locked_category is not None:
+        values["category"] = locked_category
     category = values.get("category", "")
     details = BILL_CATEGORIES.get(category)
     status = 200
@@ -69,6 +74,9 @@ def pay_bill():
         values["provider"] = details["providers"][0]
     if not details:
         flash("Choose a valid bill category.", "danger")
+        status = 400
+    elif category_mismatch:
+        flash("This page only accepts the selected payment type. Open Pay Bill to choose another category.", "danger")
         status = 400
     elif request.method == "POST" and values.get("action") != "choose-category":
         try:
@@ -87,7 +95,8 @@ def pay_bill():
         # A no-JavaScript category preview must never move money.
         values["provider"] = details["providers"][0]
     return render_template(
-        "payments/pay_bill.html", categories=BILL_CATEGORIES, values=values, details=details,
+        "payments/pay_bill.html", categories={category: details} if locked_category is not None and details else BILL_CATEGORIES,
+        values=values, details=details, locked_category=locked_category is not None,
         active_service_group=details["group"] if details else "payment",
     ), status
 

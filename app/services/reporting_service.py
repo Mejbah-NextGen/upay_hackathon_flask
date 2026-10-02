@@ -1,7 +1,10 @@
 """Wallet history reporting using Bangladesh calendar days and UTC storage."""
 
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
+import json
+
+from app.services.service_catalog import BILL_CATEGORIES
 
 
 LOCAL_TIMEZONE = timezone(timedelta(hours=6), "Asia/Dhaka")
@@ -100,7 +103,122 @@ def wallet_change(transaction):
     return amount if transaction.direction == "IN" else -(amount + Decimal(transaction.fee or 0))
 
 
-def report_visualization(transactions):
+def bill_category(transaction, invoice_categories=None):
+    """Prefer invoice metadata, with a fallback for historical demo records."""
+    if transaction.kind != "BILL_PAYMENT":
+        return ""
+    category = (invoice_categories or {}).get(getattr(transaction, "id", None), "")
+    if category in BILL_CATEGORIES:
+        return category
+    title = str(transaction.title or "").casefold()
+    for slug, details in BILL_CATEGORIES.items():
+        if title.startswith(details["label"].casefold() + " "):
+            return slug
+    provider = str(transaction.counterparty or "").split("•", 1)[0].strip()
+    # The dedicated education services share some providers with Education.
+    for slug in sorted(BILL_CATEGORIES, key=lambda value: not value.startswith("education-")):
+        if provider in BILL_CATEGORIES[slug]["providers"]:
+            return slug
+    return ""
+
+
+def parse_chart_selection(raw):
+    """Validate compact chart filters used by the segment export form."""
+    if not raw:
+        return None
+    try:
+        if len(raw) > 500:
+            raise ValueError
+        selection = json.loads(raw)
+        if not isinstance(selection, dict):
+            raise ValueError
+        mode = selection.get("mode")
+        if mode not in {"daily", "category", "amount", "cumulative"}:
+            raise ValueError
+        allowed = {
+            "daily": {"mode", "start", "end", "direction"},
+            "category": {"mode", "kind", "category"},
+            "amount": {"mode", "lower", "upper"},
+            "cumulative": {"mode", "end", "direction"},
+        }[mode]
+        if set(selection) - allowed:
+            raise ValueError
+        if mode in {"daily", "cumulative"}:
+            end = date.fromisoformat(selection["end"])
+            selection["end"] = end.isoformat()
+            direction = selection.get("direction", "")
+            if direction not in ({"IN", "OUT"} if mode == "daily" else {"IN", "OUT", ""}):
+                raise ValueError
+            if mode == "daily":
+                start = date.fromisoformat(selection["start"])
+                if start > end:
+                    raise ValueError
+                selection["start"] = start.isoformat()
+        elif mode == "category":
+            kind = selection["kind"]
+            if not isinstance(kind, str) or not kind or len(kind) > 40:
+                raise ValueError
+            category = selection.get("category", "")
+            if not isinstance(category, str) or category and (kind != "BILL_PAYMENT" or category not in BILL_CATEGORIES):
+                raise ValueError
+        elif mode == "amount":
+            lower = Decimal(str(selection["lower"]))
+            upper = None if selection.get("upper") is None else Decimal(str(selection["upper"]))
+            if not lower.is_finite() or lower < 0 or upper is not None and (not upper.is_finite() or upper <= lower):
+                raise ValueError
+        return selection
+    except (ValueError, TypeError, KeyError, InvalidOperation):
+        raise ValueError("Choose a valid chart segment before exporting.") from None
+
+
+def filter_chart_transactions(transactions, selection, invoice_categories=None):
+    """Chart selections refine the existing user/filter scope; never expand it."""
+    if not selection:
+        return list(transactions)
+    mode = selection["mode"]
+    result = []
+    for tx in transactions:
+        if tx.status != "SUCCESS":
+            continue
+        day = local_datetime(tx.created_at).date().isoformat()
+        if mode in {"daily", "cumulative"}:
+            if day > selection["end"] or mode == "daily" and day < selection["start"]:
+                continue
+            if selection.get("direction") and tx.direction != selection["direction"]:
+                continue
+        elif mode == "category":
+            if tx.direction != "OUT" or tx.kind != selection["kind"]:
+                continue
+            if selection.get("category") and bill_category(tx, invoice_categories) != selection["category"]:
+                continue
+            if not selection.get("category") and bill_category(tx, invoice_categories):
+                continue
+        elif mode == "amount":
+            deduction = Decimal(tx.amount) + Decimal(tx.fee or 0)
+            upper = selection.get("upper")
+            if tx.direction != "OUT" or deduction < Decimal(str(selection["lower"])) or upper is not None and deduction >= Decimal(str(upper)):
+                continue
+        result.append(tx)
+    return result
+
+
+def chart_selection_description(selection):
+    if not selection:
+        return "Entire filtered report"
+    mode = selection["mode"]
+    direction = {"IN": "Money in", "OUT": "Money out", "": "Net activity"}.get(selection.get("direction", ""), "Activity")
+    if mode == "daily":
+        return f"{direction}, {selection['start']} to {selection['end']} (Bangladesh dates)"
+    if mode == "cumulative":
+        return f"{direction} through {selection['end']} (Bangladesh date)"
+    if mode == "category":
+        category = selection.get("category", "")
+        return BILL_CATEGORIES[category]["label"] if category else selection["kind"].replace("_", " ").title()
+    lower, upper = Decimal(str(selection["lower"])), selection.get("upper")
+    return f"Money out from BDT {lower:,.2f}" + (f" to below BDT {Decimal(str(upper)):,.2f}" if upper is not None else " and above")
+
+
+def report_visualization(transactions, invoice_categories=None):
     """Chart data for precisely the same scoped, filtered ledger as the report.
 
     Successful outgoing values include fees. Cumulative net change starts at zero;
@@ -120,7 +238,9 @@ def report_visualization(transactions):
         elif tx.direction == "OUT":
             deduction = Decimal(tx.amount) + Decimal(tx.fee or 0)
             row["outgoing"] += deduction
-            categories[tx.kind] = categories.get(tx.kind, zero) + deduction
+            category = bill_category(tx, invoice_categories)
+            key = (tx.kind, category)
+            categories[key] = categories.get(key, zero) + deduction
             deductions.append(deduction)
     cumulative_in, cumulative_out = zero, zero
     daily_rows = []
@@ -134,8 +254,8 @@ def report_visualization(transactions):
             "cumulative_net": float(cumulative_in - cumulative_out),
         })
     category_rows = [
-        {"kind": kind, "label": kind.replace("_", " ").title(), "amount": float(amount)}
-        for kind, amount in sorted(categories.items(), key=lambda pair: (-pair[1], pair[0]))
+        {"kind": kind, "category": category, "label": BILL_CATEGORIES[category]["label"] if category else kind.replace("_", " ").title(), "amount": float(amount)}
+        for (kind, category), amount in sorted(categories.items(), key=lambda pair: (-pair[1], pair[0]))
     ]
     boundaries = [(0, 500), (500, 1000), (1000, 5000), (5000, 10000), (10000, 50000), (50000, None)]
     histogram, running_count = [], 0
@@ -156,6 +276,13 @@ def report_visualization(transactions):
         "net_change": float(cumulative_in - cumulative_out),
         "largest_category": category_rows[0] if category_rows else None,
         "largest_category_percent": round(category_rows[0]["amount"] * 100 / float(cumulative_out), 1) if category_rows and cumulative_out else 0,
+        "transactions": [{
+            "id": getattr(tx, "id", None), "date": local_datetime(tx.created_at).date().isoformat(),
+            "datetime": local_datetime(tx.created_at).strftime("%d %b %Y, %I:%M %p"),
+            "kind": tx.kind, "category": bill_category(tx, invoice_categories), "direction": tx.direction,
+            "title": tx.title, "counterparty": tx.counterparty or "Wallet", "reference": tx.reference or "",
+            "amount": float(tx.amount), "fee": float(tx.fee or 0), "change": float(wallet_change(tx)),
+        } for tx in completed],
     }
 
 

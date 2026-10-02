@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -8,6 +9,24 @@ from app.domain.models import Transaction
 from app.domain.notifications import NotificationReadState, NotificationReadReceipt
 from app.extensions import db
 from app.services.service_catalog import SERVICES
+
+
+def service_return_target(value):
+    """Accept an explicit app overview, preserving its filters across a service visit."""
+    labels = {
+        "/": "Dashboard", "/payments": "Payments",
+        "/payments/financial-services": "Financial Services",
+        "/payments/other-services": "Other Services", "/schedules": "Auto Pay",
+        "/wallet/report": "Report", "/wallet/history": "Report", "/search": "Search",
+    }
+    if not isinstance(value, str) or len(value) > 500:
+        return None
+    if not value.startswith("/") or value.startswith("//") or "\\" in value or any(ord(c) < 32 for c in value):
+        return None
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or parsed.fragment or parsed.path not in labels:
+        return None
+    return {"href": value.rstrip("?"), "label": labels[parsed.path]}
 
 
 def search_terms(query):

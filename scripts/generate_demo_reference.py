@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT))
 from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS, RECHARGE_AMOUNTS
 from app.services.wallet_catalog import DEMO_ATMS, DEMO_BANKS, CASH_OUT_RATES, BANK_TRANSFER_FEES, VISA_TRANSFER_RATE
 from app.services.payment_plans_service import PAY_LATER_MERCHANTS
+from app.services.validation import MOBILE_OPERATOR_PREFIXES
 
 
 def generate():
@@ -32,7 +33,7 @@ def generate():
         '2. RECEIVER / PROVIDER / FRAUD DIRECTORY',
         '-' * 72,
         '01944000002 | CASH_OUT | Demo Authorized Agent | REGISTERED | any provider',
-        '01944000003 | MOBILE_RECHARGE | Demo Subscriber Rafi | REGISTERED | any operator',
+        '01944000003 | MOBILE_RECHARGE | Demo Subscriber Rafi | REGISTERED | Banglalink (019 prefix)',
         '01944000099 | ANY | Demo Flagged Recipient | BLOCKED',
         '  Reason: Fraud flag supplied only as a demonstration fixture.',
         'DEMO-METER-1001 | BILL_PAYMENT | DESCO Electricity | Demo Household Electricity | REGISTERED',
@@ -61,7 +62,7 @@ def generate():
         'BD time: UTC+06:00. Older records are retained; startup does not delete them.',
         'Next calendar month day 5: DESCO / DEMO-METER-1001 / BDT 620 / monthly automatic.',
         'Second upcoming month day 5: same DESCO installment / BDT 620 / automatic.',
-        'Next month day 12: Grameenphone / 01944000003 / BDT 200 / one-time automatic.',
+        'Next month day 12: Banglalink / 01944000003 / BDT 200 / one-time automatic.',
         'Second month day 20: 01944000001 / BDT 500 / one-time manual.',
         'Seed reference: DEMO-SCHEDULE-{user id}-{group}-{YYYYMMDD}.',
         'Plans move no balance until due and successfully executed.',
@@ -77,6 +78,10 @@ def generate():
         f'BEFTN (BFTN alias) bank transfer fee: BDT {BANK_TRANSFER_FEES["BEFTN"]}.',
         f'Visa transfer fee: {VISA_TRANSFER_RATE * 100}%. Demo Visa: 4111111111111111.',
         'Demo bank account number: 1234567890. Visa numbers are masked in records.',
+        'Add Money bank source: listed demo bank, 6-20 digit account number and holder name.',
+        'Add Money card source: checksum-valid 13-19 digit demo card number and holder name.',
+        'Sample funding card: 4111111111111111. Agent source requires its mobile number.',
+        'Stored funding bank/card numbers retain only their last four digits.',
         'These are prototype terms, not live provider prices or settlement guarantees.',
         '',
         'ATM examples:',
@@ -105,6 +110,8 @@ def generate():
         '7. MOBILE RECHARGE',
         '-' * 72,
         'Operators: ' + ', '.join(MOBILE_OPERATORS),
+        'Demo operator checks use number prefixes; ported numbers are not resolved.',
+        *[f'  {name}: ' + ', '.join(prefixes) for name, prefixes in MOBILE_OPERATOR_PREFIXES.items()],
         'Preset amounts (BDT): ' + ', '.join(str(value) for value in RECHARGE_AMOUNTS),
         '',
         '8. PAYMENT CATEGORY AND PROVIDER EXAMPLES',

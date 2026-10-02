@@ -35,6 +35,8 @@
       if (result.kind !== panel.dataset.qrKind) throw new Error(t('Use a QR code for this operation.'));
       const channel = form?.querySelector('[name="channel"]')?.value || '';
       if (result.channel && channel && result.channel !== channel) throw new Error(t('Choose the matching channel before reading this QR.'));
+      const lockedCategory = form?.querySelector('[data-bill-category-locked]');
+      if (lockedCategory && result.category !== lockedCategory.value) throw new Error(t('QR provider does not match the selected category.'));
       const setValue = (input, value) => {
         if (!input || !value) return;
         if (input.tagName === 'SELECT' && !Array.from(input.options).some(option => option.value === value && !option.disabled)) throw new Error(t('QR provider does not match the selected category.'));

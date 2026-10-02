@@ -10,6 +10,12 @@
   </div>
   {% if error %}<p class="flash danger" role="alert">{{ error }}</p>{% endif %}
   {% if result %}{% if result.notice %}<p class="muted" role="status">{{ result.notice }}</p>{% endif %}<div class="assistant-links">{% for link in result.links %}<a class="btn btn-soft" href="{{ link.url }}">{{ link.label }}</a>{% endfor %}</div>{% endif %}
+  <form method="post" class="assistant-prompts" aria-label="{{ t('Suggested questions') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for prompt, label in [('How do I pay education fees?', 'Education fees'), ('What did I spend this month?', 'Spending insights'), ('How do I recharge my mobile?', 'Mobile recharge'), ('How do I set up Auto Pay?', 'Plan Auto Pay'), ('How do I export my report?', 'Export Report')] %}
+    <button type="submit" name="question" value="{{ t(prompt) }}">{{ t(label) }}</button>
+    {% endfor %}
+  </form>
   <form method="post" class="form-stack">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>{{ t('Question') }}<textarea name="question" rows="3" maxlength="1200" required placeholder="{{ t('What did I spend this month?') }}">{{ question if error else '' }}</textarea></label>

@@ -82,8 +82,9 @@ class DisplayAndNotificationTests(AppTestCase):
         self.assertEqual(html.count('href="/profile/"'), 1)
         self.assertEqual(html.count(self.user.mobile), 1)
         self.assertNotIn('Verified Wallet', html)
+        self.assertLess(html.index('class="hero-banner"'), html.index('class="section-card period-filter"'))
+        self.assertLess(html.index('class="section-card period-filter"'), html.index('class="stats-grid"'))
         self.assertLess(html.index('class="stats-grid"'), html.index('class="section-card quick-pay-card"'))
-        self.assertLess(html.index('class="section-card quick-pay-card"'), html.index('class="section-card period-filter"'))
         self.assertLess(html.index('id="notificationDropdown"'), html.index('id="navbarLanguage"'))
         self.assertLess(html.index('id="navbarLanguage"'), html.index('class="profile-chip"'))
 

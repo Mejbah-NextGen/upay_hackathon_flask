@@ -60,7 +60,7 @@
             {% endfor %}
           </form>
         </details>
-        <details class="notification-dropdown" id="notificationDropdown">
+        <details class="notification-dropdown" id="notificationDropdown" data-summary-endpoint="{{ url_for('navigation.notification_state') }}">
           <summary class="icon-button notification-toggle" aria-label="Notifications{% if navbar_alerts.unread_count %}, {{ navbar_alerts.unread_count }} unread{% endif %}" aria-controls="notificationPanel" aria-expanded="false">
             <span aria-hidden="true">&#128276;</span>
             {% if navbar_alerts.unread_count %}<span class="notification-count" aria-hidden="true">{{ '99+' if navbar_alerts.unread_count > 99 else navbar_alerts.unread_count }}</span>{% endif %}
@@ -74,7 +74,7 @@
                 {% for tx in navbar_alerts['items'] %}
                 <form method="post" action="{{ url_for('navigation.open_notification', transaction_id=tx.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="notification-item {% if tx.id > navbar_alerts.read_through and tx.id not in navbar_alerts.read_ids %}unread{% endif %}" aria-label="{{ t('Open details') }}: {{ tx.title }}">
+                <button type="submit" data-notification-id="{{ tx.id }}" class="notification-item {% if tx.id > navbar_alerts.read_through and tx.id not in navbar_alerts.read_ids %}unread{% endif %}" aria-label="{{ t('Open details') }}: {{ tx.title }}">
                   <span class="notification-dot" aria-hidden="true"></span>
                   <div><strong>{{ tx.title }}</strong><small>{{ tx.counterparty or tx.reference or 'Wallet transaction' }} &middot; {{ tx.status|replace('_', ' ')|title }}</small><small>{{ ui_local_time(tx.created_at).strftime('%d %b, %H:%M') }} BD</small></div>
                   <span class="tx-amount {{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</span>
@@ -82,12 +82,10 @@
                 </form>
                 {% endfor %}
               </div>
-              {% if navbar_alerts.unread_count %}
-              <form method="post" action="{{ url_for('navigation.mark_read') }}" class="notification-footer">
+              <form method="post" action="{{ url_for('navigation.mark_read') }}" class="notification-footer" data-notification-read-all{% if not navbar_alerts.unread_count %} hidden{% endif %}>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-soft btn-block" type="submit">Mark all as read</button>
               </form>
-              {% endif %}
             {% else %}<p class="muted">No transactions yet. Your wallet activity will appear here.</p>{% endif %}
           </section>
         </details>
@@ -131,7 +129,7 @@
       {% if request.endpoint == 'payments.pay_bill' %}
         {% set parent = ('payments.financial_services', 'Financial Services') if financial_active else (('payments.other_services', 'Other Services') if other_active else ('payments.index', 'Payments')) %}
       {% endif %}
-      {% if parent %}<a class="page-back" href="{{ url_for(parent[0]) }}"><span aria-hidden="true">&#8592;</span> Back to {{ parent[1] }}</a>{% endif %}
+      {% if parent %}<a class="page-back" href="{{ service_return.href if service_return else url_for(parent[0]) }}"><span aria-hidden="true">&#8592;</span> Back to {{ service_return.label if service_return else parent[1] }}</a>{% endif %}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="flash-stack">
@@ -159,7 +157,7 @@
   <div class="assistant-messages" id="assistantMessages" role="log" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
     <div class="assistant-message assistant-message-guide"><strong>App guide</strong><p>I can help you understand spending, check recipients, plan Auto Pay and download reports. All balances and activity in this prototype are demo data.</p></div>
   </div>
-  <div class="assistant-prompts" aria-label="Suggested questions"><button type="button" data-assistant-prompt="What did I spend this month?">Spending insights</button><button type="button" data-assistant-prompt="How do I set up Auto Pay?">Plan Auto Pay</button><button type="button" data-assistant-prompt="How do I export my report?">Export Report</button></div>
+  <div class="assistant-prompts" aria-label="Suggested questions"><button type="button" data-assistant-prompt="What did I spend this month?">Spending insights</button><button type="button" data-assistant-prompt="How do I pay education fees?">Education fees</button><button type="button" data-assistant-prompt="How do I recharge my mobile?">Mobile recharge</button><button type="button" data-assistant-prompt="How do I set up Auto Pay?">Plan Auto Pay</button><button type="button" data-assistant-prompt="How do I export my report?">Export Report</button></div>
   <p class="assistant-status" id="assistantStatus" role="status"></p>
   <form class="assistant-form" id="assistantForm">
     <label class="sr-only" for="assistantQuestion">Question about this app</label>

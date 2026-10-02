@@ -5,8 +5,8 @@ import re
 from app.domain.models import User
 from app.domain.operations import RecipientRegistration
 from app.services.exceptions import ValidationError
-from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS
-from app.services.validation import normalize_mobile
+from app.services.service_catalog import BILL_CATEGORIES
+from app.services.validation import normalize_mobile, validate_recharge_operator
 
 
 SUPPORTED_KINDS = frozenset({"SEND_MONEY", "MOBILE_RECHARGE", "CASH_OUT", "BILL_PAYMENT", "REQUEST_MONEY"})
@@ -44,14 +44,15 @@ def lookup_recipient(kind, number, *, provider="", category=""):
         authorization_name = provider
     else:
         number = normalize_mobile(number)
-        if kind == "MOBILE_RECHARGE" and provider and provider not in MOBILE_OPERATORS:
-            raise ValidationError("Choose a supported mobile operator.")
         authorization_name = provider or None
 
     base = {"number": number, "name": None, "authorization_name": authorization_name}
     blocked = RecipientRegistration.query.filter_by(number=_registry_number(number), status="BLOCKED").first()
     if blocked:
         return {**base, "status": "blocked", "message": "Blocked number — flagged in the demo safety registry.", "can_transact": False}
+
+    if kind == "MOBILE_RECHARGE":
+        validate_recharge_operator(provider, number)
 
     # Wallet identity is required for send money; a directory record alone cannot receive funds.
     wallet = User.query.filter_by(mobile=number).first() if kind != "BILL_PAYMENT" else None

@@ -63,9 +63,11 @@ class PaymentTests(AppTestCase):
         html = response.get_data(as_text=True)
         options = FormOptions(html).options
         self.assertIn("Gas Payment", html)
-        self.assertEqual(["gas"], [item["value"] for item in options["category"] if "selected" in item])
+        self.assertNotIn("category", options)
+        self.assertIn('name="category" value="gas"', html)
         enabled_providers = [item["value"] for item in options["provider"] if item["value"] and "disabled" not in item]
         self.assertEqual(list(BILL_CATEGORIES["gas"]["providers"]), enabled_providers)
+        self.assertEqual([""] + list(BILL_CATEGORIES["gas"]["providers"]), [item["value"] for item in options["provider"]])
         self.assertFalse(set(enabled_providers).intersection(MOBILE_OPERATORS))
 
     def test_wrong_category_provider_rejected_without_debit_and_input_retained(self):

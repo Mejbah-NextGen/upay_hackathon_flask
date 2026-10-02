@@ -1,0 +1,95 @@
+UpayX App Assistant — sample prompts
+====================================
+Open the star button beside Notifications, or visit App Assistant.
+Copy a prompt below. English, বাংলা and romanized Bangla are supported.
+Replies use your signed-in account. Payment buttons open a form for you to
+review and confirm; the assistant does not execute payments. All funds and
+providers in this app are demonstrations. Use Clear chat to start a new topic.
+
+EDUCATION FEES
+How do I pay education fees?
+What is the service charge for an education fee of BDT 500?
+How do I pay my school tuition fee?
+How do I pay a college admission fee?
+How do I pay a university examination fee?
+What student or invoice details do I need for education payment?
+Show my education payment report.
+What did I spend on university fees this month?
+
+শিক্ষা ফি কীভাবে দেব?
+৫০০ টাকা শিক্ষা ফি দিলে অতিরিক্ত চার্জ কত?
+কলেজের ভর্তি ফি কীভাবে দেব?
+আমার বিশ্ববিদ্যালয়ের ফি পেমেন্টের রিপোর্ট দেখাও।
+
+Education fee er charge koto?
+School er tuition fee kivabe dibo?
+College er admission fee dite chai.
+University fee 500 taka dile charge koto?
+Education e ei mas e koto khoroch korechi?
+
+BALANCE AND SPENDING
+What is my wallet balance?
+What did I spend this month?
+What did I spend today?
+What did I spend in the last 7 days?
+What did I spend on mobile recharge this month?
+Can I afford BDT 800 after reserving my scheduled payments and Pay Later debt?
+
+আমার ব্যালেন্স কত?
+এই মাসে কত খরচ করেছি?
+আজ কত খরচ করেছি?
+Amar wallet e koto taka ache?
+Ei mas e koto khoroch korechi?
+
+CASH OUT AND TRANSFERS
+What is the agent cash out fee for BDT 500?
+What is the ATM cash out fee for BDT 1,000?
+How do I send money to another UpayX wallet?
+How do I check a recipient before sending money?
+What are the NPSB, BEFTN and Visa transfer fees?
+
+ATM এ ১০০০ টাকা তুললে কত কাটবে?
+অন্য ওয়ালেটে টাকা পাঠাব কীভাবে?
+Agent cashout e 500 taka dile charge koto?
+
+RECHARGE AND ADD MONEY
+How do I recharge my mobile?
+How do I add money from a demo bank?
+How do I add money from a demo card?
+How do I pay an electricity bill?
+Gas bill er payment kivabe korbo?
+
+AUTO PAY, SAVINGS AND PAY LATER
+How do I set up Auto Pay?
+How much is due in my upcoming scheduled payments?
+Show only my Auto Pay report.
+How do I plan savings?
+How is the savings return estimated?
+How does Pay Later work?
+How much Pay Later debt do I have?
+How do I request money?
+
+Auto Pay কীভাবে চালু করব?
+আমার Auto Pay রিপোর্ট দেখাও।
+সেভিংসের হিসাব কীভাবে করব?
+Auto pay er report dekhte chai.
+
+REPORTS AND APP SETTINGS
+How do I export my report as PDF or Excel?
+How do I download a transaction receipt?
+How do I change my profile picture?
+How do I change the app language or theme?
+আমার রিপোর্ট কীভাবে নামাব?
+
+FOLLOW-UP EXAMPLES
+1. Ask: How do I pay university fees?
+   Then ask: And the fee for BDT 500?
+2. Ask: What is the agent cash out fee for BDT 500?
+   Then ask: What about ATM for BDT 1,000?
+3. Ask: What did I spend this month?
+   Then ask: And today?
+
+For fee questions, name the service and amount. Your institution supplies
+its actual tuition/admission/examination amount; the app does not look it up.
+Only the entered education/bill amount is deducted in this demo, with no
+additional service charge. Cash Out has separate agent/ATM charges.

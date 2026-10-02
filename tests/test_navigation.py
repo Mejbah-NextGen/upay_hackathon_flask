@@ -122,6 +122,9 @@ class NavigationTests(AppTestCase):
         self.assertNotIn(b'class="notification-count"', response.data)
         self.assertNotIn(b"Hidden Navbar Event", response.data)
         self.assertIn(b"Hidden Navbar Event", self.client.get("/notifications").data)
+        state = self.client.get("/notifications/summary").json
+        self.assertFalse(state["navbar_enabled"])
+        self.assertEqual(state["unread_count"], 1)
 
     def test_search_and_alerts_use_bangladesh_time(self):
         self.transaction(created_at=datetime(2026, 10, 2, 6, 0, tzinfo=timezone.utc))
@@ -165,3 +168,37 @@ class NavigationTests(AppTestCase):
             self.assertEqual(self.client.get(path).status_code, 302)
         self.assertEqual(self.client.post("/notifications/read").status_code, 302)
         self.assertEqual(notification_summary(self.user_id)["unread_count"], 1)
+
+    def test_direct_receipt_reads_only_viewed_notification_and_summary_is_private(self):
+        first = self.transaction(title="First unread")
+        second = self.transaction(title="Second unread")
+        other = self.second_user()
+        foreign = self.transaction(title="Foreign unread", user_id=other.id)
+        self.assertEqual(self.client.get(f"/wallet/transaction/{foreign.id}").status_code, 404)
+        self.assertEqual(self.client.get(f"/wallet/transaction/{second.id}").status_code, 200)
+        self.assertEqual(self.client.get(f"/wallet/transaction/{second.id}").status_code, 200)
+        response = self.client.get("/notifications/summary")
+        self.assertEqual(response.headers["Cache-Control"], "private, no-store")
+        self.assertEqual(response.json["unread_count"], 1)
+        self.assertIn(second.id, response.json["read_ids"])
+        self.assertNotIn(first.id, response.json["read_ids"])
+        self.assertNotIn(foreign.id, response.json["read_ids"])
+        self.assertEqual(notification_summary(other.id)["unread_count"], 1)
+        self.client.get(f"/wallet/transaction/{first.id}")
+        self.assertNotIn(b'class="notification-count"', self.client.get("/").data)
+        self.client.post("/auth/logout")
+        self.assertEqual(self.client.get("/notifications/summary").status_code, 302)
+
+    def test_education_back_retains_dashboard_period_and_rejects_external_targets(self):
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        html = self.client.get("/?days=30").get_data(as_text=True)
+        links = [unescape(value) for value in re.findall(r'href="([^"]+)"', html)]
+        education = next(value for value in links if parse_qs(urlsplit(value).query).get("category") == ["education"])
+        self.assertEqual(parse_qs(urlsplit(education).query)["return_to"], ["/?days=30"])
+        html = self.client.get(education).get_data(as_text=True)
+        self.assertIn('class="page-back" href="/?days=30"', html)
+        self.assertIn("Back to Dashboard", html)
+        for invalid in ("https://example.com", "//example.com", "/auth/logout", "/\\example.com", "/?days=1#fake", "/\nLocation:x"):
+            html = self.client.get("/payments/pay-bill", query_string={"category": "education", "return_to": invalid}).get_data(as_text=True)
+            self.assertIn('class="page-back" href="/payments"', html)

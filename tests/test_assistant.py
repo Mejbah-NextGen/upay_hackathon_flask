@@ -7,6 +7,7 @@ from urllib.error import URLError
 from app.domain.models import Transaction, User
 from app.domain.operations import ScheduledPayment
 from app.domain.payment_plans import PayLaterPurchase
+from app.container import get_container
 from app.extensions import db
 from app.services.assistant_service import account_context, conversation_history
 from tests.helpers import AppTestCase
@@ -135,6 +136,105 @@ class AssistantTests(AppTestCase):
                 self.assertFalse(any(link['url'] == '/wallet/report' or link['label'] == 'Open Report' for link in result['links']))
         result = self.ask('How do I export my report?').get_json()
         self.assertEqual(result['links'][0]['label'], 'Open Report')
+
+    def test_education_fee_questions_choose_education_in_three_writing_styles(self):
+        questions = [
+            ('What is the education fee for BDT 500?', 'education'),
+            ('Education fee er charge koto?', 'education'),
+            ('৫০০ টাকা শিক্ষা ফি দিলে অতিরিক্ত চার্জ কত?', 'education'),
+            ('School er tuition fee kivabe dibo?', 'education-school'),
+            ('College admission fee BDT 500', 'education-college'),
+            ('বিশ্ববিদ্যালয়ের ফি কীভাবে দেব?', 'education-university'),
+        ]
+        for question, category in questions:
+            with self.subTest(question=question):
+                result = self.ask(question).get_json()
+                self.assertIn(f'category={category}', result['links'][0]['url'])
+                self.assertTrue(all('cash-out' not in action['url'] for action in result['links']))
+                self.assertNotIn('1.5%', result['answer'])
+                self.assertNotIn('1%', result['answer'])
+                self.assertTrue('no additional service charge' in result['answer'] or 'অতিরিক্ত সার্ভিস চার্জ ০' in result['answer'])
+        self.assertEqual(db.session.get(User, self.user_id).balance, Decimal('1000.00'))
+        self.assertEqual(Transaction.query.count(), 0)
+
+    def test_short_fee_followups_preserve_service_and_explicit_topic_switch_uses_latest_service(self):
+        self.ask('How do I pay university fees?')
+        result = self.ask('Fee koto?').get_json()
+        self.assertIn('category=education-university', result['links'][0]['url'])
+        result = self.ask('For BDT 500?').get_json()
+        self.assertIn('total deduction is BDT 500.00', result['answer'])
+        self.assertNotIn('Cash Out', result['answer'])
+        result = self.ask('What about ATM for BDT 1000?').get_json()
+        self.assertIn('1%', result['answer'])
+        self.assertIn('BDT 10.00', result['answer'])
+        result = self.ask('Charge koto?').get_json()
+        self.assertIn('Cash Out', result['answer'])
+        self.assertNotIn('Payment', result['answer'])
+        result = self.ask('What about education fee for BDT 600?').get_json()
+        self.assertIn('category=education', result['links'][0]['url'])
+        self.assertIn('total deduction is BDT 600.00', result['answer'])
+        self.assertNotIn('Cash Out', result['answer'])
+
+    def test_unspecified_fee_requires_service_and_add_money_from_bank_stays_on_add_money(self):
+        result = self.ask('What is the fee for BDT 500?').get_json()
+        self.assertIn('Which service', result['answer'])
+        self.assertNotIn('1.5%', result['answer'])
+        result = self.ask('How do I add money from a bank account?').get_json()
+        self.assertEqual(result['links'][0]['url'], '/wallet/add-money')
+        self.assertNotIn('NPSB', result['answer'])
+
+    def test_education_and_auto_pay_report_actions_are_filtered(self):
+        result = self.ask('Show my university fee report').get_json()
+        self.assertIn('kind=BILL_PAYMENT', result['links'][0]['url'])
+        self.assertIn('category=education-university', result['links'][0]['url'])
+        result = self.ask('Auto pay er report dekhte chai').get_json()
+        self.assertIn('plan_mode=auto_pay', result['links'][0]['url'])
+        self.assertIn('scope=all', result['links'][0]['url'])
+
+    def test_education_spending_uses_own_invoice_and_legacy_categories(self):
+        other = User(full_name='Other Student', mobile='01899000005', balance=Decimal('2000.00'))
+        db.session.add(other)
+        db.session.commit()
+        payments = get_container().payments
+        for user_id, category, provider, amount in [
+            (self.user_id, 'education-university', 'Demo University', '75.00'),
+            (self.user_id, 'education-school', 'Demo School', '25.00'),
+            (self.user_id, 'gas', 'Titas Gas', '150.00'),
+            (other.id, 'education-university', 'Demo University', '900.00'),
+        ]:
+            payments.pay_bill(user_id, provider, 'PRIVATE-STUDENT', amount, category=category, invoice_reference='PRIVATE-INVOICE')
+        # Older demo rows predate invoices; use the same classification as Report.
+        db.session.add_all([
+            Transaction(user_id=self.user_id, kind='BILL_PAYMENT', direction='OUT', title='University Payment',
+                        counterparty='Demo University • PRIVATE-LEGACY-STUDENT', amount=Decimal('45.00')),
+            Transaction(user_id=self.user_id, kind='BILL_PAYMENT', direction='OUT', title='Bill Payment',
+                        counterparty='Demo College • PRIVATE-LEGACY-STUDENT', amount=Decimal('15.00')),
+        ])
+        db.session.commit()
+        result = self.ask('What did I spend on university fees this month?').get_json()
+        self.assertIn('University: BDT 120.00', result['answer'])
+        result = self.ask('Education e ei mas e koto khoroch korechi?').get_json()
+        self.assertIn('Education: BDT 160.00', result['answer'])
+        serialized = json.dumps(account_context(self.user))
+        self.assertNotIn('PRIVATE', serialized)
+        self.assertNotIn('900.00', serialized)
+
+    def test_hosted_education_answer_is_grounded_and_has_supported_actions(self):
+        self.app.config.update(OPENAI_API_KEY='test-not-a-real-key', ASSISTANT_API_ENABLED=True)
+        provider = MagicMock()
+        provider.__enter__.return_value.read.return_value = json.dumps({'output': [{'type': 'message', 'content': [{'type': 'output_text', 'text': 'Open the education form to review your fee.'}]}]}).encode()
+        with patch('app.services.assistant_service.urlopen', return_value=provider) as urlopen:
+            result = self.ask('How do I pay an education fee of BDT 500?').get_json()
+        instructions = json.loads(urlopen.call_args.args[0].data)['instructions']
+        self.assertIn('Education fees are bill payments, never Cash Out charges', instructions)
+        self.assertIn('total deduction is BDT 500.00', instructions)
+        self.assertIn('category=education', result['links'][0]['url'])
+        self.assertEqual(result['mode'], 'ai')
+
+    def test_full_assistant_page_offers_native_education_and_recharge_shortcuts(self):
+        page = self.client.get('/assistant').get_data(as_text=True)
+        self.assertIn('name="question" value="How do I pay education fees?"', page)
+        self.assertIn('name="question" value="How do I recharge my mobile?"', page)
 
     def test_bangla_answers_and_language_preference(self):
         result = self.ask('আমার ব্যালেন্স কত?').get_json()

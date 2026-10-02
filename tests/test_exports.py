@@ -138,6 +138,17 @@ class ExportRouteTests(AppTestCase):
         self.assertIn("BDT 120.00", final)
         for number, page in enumerate(reader.pages, 1):
             self.assertIn(f"Page {number} of {len(reader.pages)}", page.extract_text())
+            self.assertIn("UpayX", page.extract_text())
+
+    def test_receipt_header_has_existing_vector_brand_in_reserved_space(self):
+        import pymupdf
+        response = self.client.get(f"/wallet/transaction/{self.cash.id}/download?format=pdf")
+        with pymupdf.open(stream=response.data, filetype="pdf") as document:
+            for page in document:
+                wordmark = min(page.search_for("UpayX"), key=lambda rectangle: rectangle.y0)
+                self.assertLess(wordmark.y1, 73)
+                logo_shapes = [shape for shape in page.get_drawings() if shape["rect"].y1 < 73 and shape.get("fill")]
+                self.assertGreaterEqual(len(logo_shapes), 5)
 
     def test_explicit_dates_status_and_schedule_scope_share_export_filters(self):
         today = local_datetime(self.now).date().isoformat()
