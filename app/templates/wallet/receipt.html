@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Transaction summary · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Transaction receipt</span><h1>{{ tx.title }} summary</h1><p>{{ summary }}</p></div><a class="btn btn-soft" href="{{ url_for('wallet.history') }}">Open Report</a></div>
+<section class="section-card receipt-card">
+  <div class="section-head"><h2>Transaction details</h2><span class="status-badge {{ 'status-success' if tx.status == 'SUCCESS' else 'status-other' }}">{{ tx.status|replace('_', ' ')|title }}</span></div>
+  <dl class="receipt-details">
+    <div><dt>Account holder</dt><dd>{{ current_user.full_name }}</dd></div>
+    <div><dt>Wallet number</dt><dd>{{ current_user.mobile }}</dd></div>
+    <div><dt>Reference</dt><dd>{{ tx.reference or '—' }}</dd></div>
+    <div><dt>Transaction ID</dt><dd>{{ tx.id }}</dd></div>
+    <div><dt>Date and time (BD)</dt><dd>{{ local_time(tx.created_at).strftime('%d %b %Y, %I:%M %p') }}</dd></div>
+    <div><dt>Type</dt><dd>{{ tx.kind|replace('_', ' ')|title }}</dd></div>
+    <div><dt>Counterparty / provider</dt><dd>{{ tx.counterparty or 'Wallet' }}</dd></div>
+    <div><dt>Direction</dt><dd>{{ 'Money in' if tx.direction == 'IN' else 'Money out' }}</dd></div>
+    <div><dt>Amount</dt><dd>৳ {{ '%.2f'|format(tx.amount) }}</dd></div>
+    <div><dt>Fee</dt><dd>৳ {{ '%.2f'|format(tx.fee) }}</dd></div>
+    <div><dt>Wallet change</dt><dd class="{{ 'credit' if wallet_change > 0 else 'debit' if wallet_change < 0 else 'muted' }}">{{ '+' if wallet_change > 0 else '' }}৳ {{ '%.2f'|format(wallet_change) }}</dd></div>
+    <div><dt>Note</dt><dd>{{ tx.note or 'No note' }}</dd></div>
+  </dl>
+  <h2>Print / download receipt</h2>
+  <form class="report-export-form" method="get" action="{{ url_for('wallet.download_receipt', transaction_id=tx.id) }}"><label for="receiptFormat">Choose format</label><select id="receiptFormat" name="format"><option value="pdf">PDF (.pdf)</option><option value="jpg">Image (.jpg)</option></select><button class="btn btn-primary" type="submit">Download receipt</button></form>
+  <p class="muted">The download includes the full record, fees, a transaction summary and documentation. Open the downloaded file to print it.</p>
+</section>
+<section class="section-card"><h2>Record documentation</h2><p>Amount is the payment or transfer principal. Fee is the service charge. Wallet change shows the actual credit or deduction, including fees for money out. Only successful transactions change the completed totals in Report.</p><p class="muted">All amounts use BDT. Dates and times use Bangladesh time (UTC+6). This receipt documents the hackathon demo wallet.</p></section>
+{% endblock %}

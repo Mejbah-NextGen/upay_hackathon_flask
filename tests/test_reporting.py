@@ -36,17 +36,17 @@ class ReportingUnitTests(unittest.TestCase):
         self.assertEqual(local_datetime(start.created_at).hour, 0)
         self.assertEqual(local_datetime(start.created_at).date(), self.now.date())
 
-    def test_ninety_days_includes_first_calendar_day_and_excludes_day_before(self):
-        start, end = period_dates(90, self.now)
+    def test_120_days_includes_first_calendar_day_and_excludes_day_before(self):
+        start, end = period_dates(120, self.now)
         boundary = datetime.combine(start, time.min, LOCAL_TIMEZONE).astimezone(timezone.utc)
         first = transaction(boundary)
         outside = transaction(boundary - timedelta(microseconds=1))
         today = transaction(self.now)
-        self.assertEqual(filter_transactions([first, outside, today], days=90, now=self.now), [today, first])
-        self.assertEqual((end - start).days, 89)
+        self.assertEqual(filter_transactions([first, outside, today], days=120, now=self.now), [today, first])
+        self.assertEqual((end - start).days, 119)
 
     def test_day_range_clamps_and_invalid_values_have_safe_defaults(self):
-        for raw, expected in [("0", 1), ("-3", 1), ("999", 90), ("12", 12), ("1.5", 1), ("invalid", 1), (None, 1)]:
+        for raw, expected in [("0", 1), ("-3", 1), ("999", 120), ("12", 12), ("1.5", 1), ("invalid", 1), (None, 1)]:
             with self.subTest(raw=raw):
                 self.assertEqual(parse_days(raw), expected)
         self.assertIsNone(parse_days("", default=None))
@@ -157,7 +157,7 @@ class ReportingRouteTests(AppTestCase):
 
     def test_bad_date_range_is_clamped_and_all_history_can_be_reset(self):
         _, context = self.get_context("/?days=500")
-        self.assertEqual(context["days"], 90)
+        self.assertEqual(context["days"], 120)
         _, context = self.get_context("/wallet/history")
         self.assertIsNone(context["days"])
         self.assertEqual(len(context["transactions"]), 5)

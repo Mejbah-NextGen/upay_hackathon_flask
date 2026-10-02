@@ -6,14 +6,15 @@ from decimal import Decimal
 
 LOCAL_TIMEZONE = timezone(timedelta(hours=6), "Asia/Dhaka")
 PAYMENT_KINDS = frozenset({"MOBILE_RECHARGE", "BILL_PAYMENT"})
+MAX_REPORT_DAYS = 120
 
 
 def parse_days(raw_days, default=1):
-    """Accept a whole-day range and constrain it to the supported 1–90 days."""
+    """Accept a whole-day range and constrain it to the supported 1-120 days."""
     if raw_days is None or str(raw_days).strip() == "":
         return default
     try:
-        return min(90, max(1, int(str(raw_days).strip())))
+        return min(MAX_REPORT_DAYS, max(1, int(str(raw_days).strip())))
     except (TypeError, ValueError):
         return default
 
@@ -30,7 +31,7 @@ def period_dates(days, now=None):
     return today - timedelta(days=days - 1), today
 
 
-def filter_transactions(transactions, *, days=None, direction="", kind="", query="", now=None):
+def filter_transactions(transactions, *, days=None, direction="", kind="", query="", status="", start_date=None, end_date=None, now=None):
     days = parse_days(days, default=None)
     dates = period_dates(days, now) if days is not None else None
     query = query.strip().casefold()
@@ -40,7 +41,14 @@ def filter_transactions(transactions, *, days=None, direction="", kind="", query
             tx_date = local_datetime(tx.created_at).date()
             if not dates[0] <= tx_date <= dates[1]:
                 continue
+        tx_date = local_datetime(tx.created_at).date()
+        if start_date and tx_date < start_date:
+            continue
+        if end_date and tx_date > end_date:
+            continue
         if direction and tx.direction != direction:
+            continue
+        if status and tx.status != status:
             continue
         if kind == "payments":
             if tx.kind not in PAYMENT_KINDS:
@@ -74,9 +82,57 @@ def transaction_totals(transactions):
     )
     return {
         "transaction_count": len(transactions),
+        "completed_count": len(completed),
+        "other_count": len(transactions) - len(completed),
+        "fees_total": sum((Decimal(tx.fee or 0) for tx in completed if tx.direction == "OUT"), Decimal("0.00")),
+        "net_change": incoming_total - outgoing_total,
         "payment_total": payment_total,
         "outgoing_total": outgoing_total,
         "incoming_total": incoming_total,
+    }
+
+
+def wallet_change(transaction):
+    """The actual ledger effect; incomplete records never change the wallet."""
+    if transaction.status != "SUCCESS":
+        return Decimal("0.00")
+    amount = Decimal(transaction.amount)
+    return amount if transaction.direction == "IN" else -(amount + Decimal(transaction.fee or 0))
+
+
+def filter_schedules(schedules, *, direction="", kind="", query="", status="", start_date=None, end_date=None):
+    """Due dates are distinct from the historical transaction period."""
+    if direction == "IN":
+        return []
+    query = query.strip().casefold()
+    result = []
+    for item in schedules:
+        due = local_datetime(item.due_at).date()
+        if start_date and due < start_date or end_date and due > end_date:
+            continue
+        if status and item.status != status:
+            continue
+        if kind == "payments" and item.kind not in PAYMENT_KINDS:
+            continue
+        if kind and kind != "payments" and item.kind != kind:
+            continue
+        text = " ".join(str(getattr(item, field, "") or "") for field in (
+            "recipient_number", "recipient_name", "provider", "note", "kind", "category", "id",
+        )).casefold()
+        if query and query not in text:
+            continue
+        result.append(item)
+    return sorted(result, key=lambda item: (local_datetime(item.due_at), item.id))
+
+
+def schedule_totals(schedules):
+    schedules = list(schedules)
+    active = [item for item in schedules if item.status == "SCHEDULED"]
+    return {
+        "schedule_count": len(schedules),
+        "scheduled_count": len(active),
+        "scheduled_total": sum((Decimal(item.amount) for item in active), Decimal("0.00")),
+        "auto_pay_count": sum(bool(item.auto_pay) for item in active),
     }
 
 

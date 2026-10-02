@@ -16,7 +16,7 @@ def index():
     stats = get_container().wallet.dashboard_stats(user_id, days=days)
     services = [get_service(service_id) for service_id in (
         "send-money", "recharge", "cash-out", "pay-bill", "add-money", "savings",
-        "fund-transfer", "request-money", "traffic-fine", "toll", "government",
+        "auto-pay", "request-money", "traffic-fine", "toll", "government",
         "education", "insurance", "donation", "ticket", "hotel",
     )]
     quick_payments = [get_service(service_id) for service_id in (

@@ -3,9 +3,10 @@
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Request Money</h1><p>Prepare a message asking someone to send money to your demo wallet.</p></div></div>
 <section class="section-card form-card narrow-card">
-  <form method="post" class="form-stack">
+  <form method="post" class="form-stack" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="REQUEST_MONEY">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Recipient Mobile Number<input name="recipient_mobile" value="{{ values.get('recipient_mobile', '') }}" type="tel" inputmode="tel" placeholder="01XXXXXXXXX" maxlength="24" required></label>
+    <label>Recipient Mobile Number<input name="recipient_mobile" value="{{ values.get('recipient_mobile', '') }}" type="tel" inputmode="tel" placeholder="01XXXXXXXXX" maxlength="24" data-recipient-number aria-describedby="requestRecipientStatus" required></label>
+    <p class="recipient-status" id="requestRecipientStatus" data-recipient-status role="status">Enter a number to check its registered name and safety status.</p>
     <label>Requested Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="500.00" required></label>
     <label>Note (Optional)<input name="note" value="{{ values.get('note', '') }}" maxlength="160" placeholder="What is this request for?"></label>
     <button class="btn btn-primary" type="submit">Prepare Request Message</button>

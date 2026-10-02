@@ -6,7 +6,7 @@
   <form method="post" class="form-stack">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="notification-setting"><span>Transaction notifications</span><input type="checkbox" name="notifications_enabled" {% if preferences.notifications_enabled %}checked{% endif %}></label>
-    <p class="muted">Show recent wallet activity and an unread badge in the notification menu. Your transactions are always available in History.</p>
+    <p class="muted">Show recent wallet activity and an unread badge in the notification menu. Your transactions are always available in Report.</p>
     <button class="btn btn-primary" type="submit">Save Preferences</button>
   </form>
 </section>

@@ -115,13 +115,14 @@ SERVICES = (
     _service("pay-bill", "Pay Bill", "🧾", "payments.pay_bill", "payment", "Choose a bill category and its matching provider.", ("bills", "utility", "payment")),
     _service("add-money", "Add Money", "➕", "wallet.add_money", "financial", "Top up your wallet from a demo bank, card or transfer.", ("top up", "deposit", "balance", "bank", "card")),
     _service("savings", "Savings", "🏦", "payments.savings", "financial", "Calculate a monthly savings plan without moving money.", ("save", "monthly", "calculator", "plan")),
+    _service("auto-pay", "Auto Pay", "↻", "operations.schedules", "financial", "Schedule one-time or monthly demo payments for the next two months.", ("schedule", "scheduled", "automatic", "future", "one-time", "monthly", "prepay")),
     _service("fund-transfer", "Fund Transfer", "🔁", "wallet.send_money", "financial", "Transfer demo funds to a registered wallet.", ("send money", "transfer")),
     _service("request-money", "Request Money", "💬", "payments.request_money", "financial", "Prepare a money request message to share yourself.", ("request", "collect", "receive")),
     *(
         _service(slug, category["label"], category["icon"], "payments.pay_bill", category["group"], category["description"], ("bill", "bills", "payment", *category["providers"]), category=slug)
         for slug, category in BILL_CATEGORIES.items()
     ),
-    _service("history", "Transaction History", "🕘", "wallet.history", "other", "Review your wallet transactions and payment references.", ("history", "records", "statement", "receipt", "transactions")),
+    _service("history", "Report", "🕘", "wallet.history", "other", "Review transactions, download receipts and export filtered reports.", ("report", "history", "records", "statement", "receipt", "transactions", "export")),
     _service("profile", "Profile", "👤", "profile.index", "other", "Update your name and contact details.", ("account", "name", "email", "settings")),
 )
 

@@ -1,13 +1,15 @@
 from decimal import Decimal
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, render_template
 
 from config import DevelopmentConfig
-from app.container import build_container
+from app.container import build_container, get_container
 from app.domain.models import Transaction, User
 from app.domain.notifications import NotificationReadState
 from app.domain.preferences import UserPreference
+from app.domain.profiles import UserProfile
+from app.domain.operations import RecipientRegistration, ScheduledPayment
 from app.extensions import csrf, db
 
 
@@ -26,6 +28,8 @@ def create_app(config_object=DevelopmentConfig):
     from app.blueprints.payments.routes import bp as payments_bp
     from app.blueprints.profile.routes import bp as profile_bp
     from app.blueprints.navigation.routes import bp as navigation_bp
+    from app.blueprints.assistant.routes import bp as assistant_bp
+    from app.blueprints.operations.routes import bp as operations_bp, register_operations_cli
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -33,8 +37,15 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(payments_bp)
     app.register_blueprint(profile_bp)
     app.register_blueprint(navigation_bp)
+    app.register_blueprint(assistant_bp)
+    app.register_blueprint(operations_bp)
+    register_operations_cli(app)
 
     app.extensions["ioc_container"] = build_container(app)
+
+    @app.errorhandler(413)
+    def upload_too_large(error):
+        return render_template("errors/upload_too_large.html"), 413
 
     @app.context_processor
     def inject_global_ui():
@@ -56,11 +67,14 @@ def create_app(config_object=DevelopmentConfig):
             "navbar_alerts": alerts,
             "navbar_alerts_enabled": alerts_enabled,
             "ui_local_time": local_datetime,
+            "profile_details": get_container().profile.get_details(user.id) if user else None,
         }
 
     with app.app_context():
         db.create_all()
         _seed_demo_data()
+        from app.services.demo_seed import seed_demo_operations
+        seed_demo_operations(User.query.filter_by(mobile="01329097775").one())
 
     return app
 

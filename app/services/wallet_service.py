@@ -1,11 +1,14 @@
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 
-from app.domain.models import Transaction
+from sqlalchemy import update
+
+from app.domain.models import Transaction, User
 from app.extensions import db
 from app.repositories.interfaces import TransactionRepository, UserRepository
 from app.services.exceptions import InsufficientBalanceError, ValidationError
 from app.services.validation import normalize_mobile
+from app.services.recipient_service import assert_not_blocked
 
 
 class WalletService:
@@ -40,9 +43,33 @@ class WalletService:
             raise ValidationError("User account not found.")
         return user
 
-    def send_money(self, user_id: int, recipient_mobile: str, amount_raw, note: str = ""):
+    @staticmethod
+    def _debit(user_id, amount, message="Insufficient balance."):
+        changed = db.session.execute(
+            update(User).where(User.id == user_id, User.balance >= amount).values(balance=User.balance - amount),
+            execution_options={"synchronize_session": "fetch"},
+        )
+        if changed.rowcount != 1:
+            raise InsufficientBalanceError(message)
+
+    @staticmethod
+    def _credit(user_id, amount):
+        db.session.execute(
+            update(User).where(User.id == user_id).values(balance=User.balance + amount),
+            execution_options={"synchronize_session": "fetch"},
+        )
+
+    @staticmethod
+    def _finish(commit):
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
+
+    def send_money(self, user_id: int, recipient_mobile: str, amount_raw, note: str = "", *, commit=True):
         sender = self.get_user(user_id)
         recipient_mobile = normalize_mobile(recipient_mobile)
+        assert_not_blocked(recipient_mobile)
         amount = self.parse_amount(amount_raw)
         if recipient_mobile == sender.mobile:
             raise ValidationError("You cannot send money to your own number.")
@@ -55,7 +82,7 @@ class WalletService:
         note = (note or "").strip()
         if len(note) > 255:
             raise ValidationError("Note must be 255 characters or fewer.")
-        sender.balance = Decimal(sender.balance) - amount
+        self._debit(sender.id, amount)
         ref = self._reference()
         outgoing = Transaction(
             user_id=sender.id,
@@ -69,7 +96,7 @@ class WalletService:
         )
         db.session.add(outgoing)
 
-        recipient.balance = Decimal(recipient.balance) + amount
+        self._credit(recipient.id, amount)
         incoming = Transaction(
             user_id=recipient.id,
             kind="RECEIVE_MONEY",
@@ -82,16 +109,16 @@ class WalletService:
         )
         db.session.add(incoming)
 
-        db.session.commit()
+        self._finish(commit)
         return outgoing
 
-    def add_money(self, user_id: int, source: str, amount_raw):
+    def add_money(self, user_id: int, source: str, amount_raw, *, commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)
         source = (source or "").strip()
         if source not in {"Bank Account", "Debit / Credit Card", "Agent"}:
             raise ValidationError("Choose a valid add-money source.")
-        user.balance = Decimal(user.balance) + amount
+        self._credit(user.id, amount)
         tx = Transaction(
             user_id=user.id,
             kind="ADD_MONEY",
@@ -102,18 +129,19 @@ class WalletService:
             amount=amount,
         )
         db.session.add(tx)
-        db.session.commit()
+        self._finish(commit)
         return tx
 
-    def cash_out(self, user_id: int, agent_number: str, amount_raw):
+    def cash_out(self, user_id: int, agent_number: str, amount_raw, *, commit=True):
         user = self.get_user(user_id)
         agent_number = normalize_mobile(agent_number)
+        assert_not_blocked(agent_number)
         amount = self.parse_amount(amount_raw)
         fee = (amount * Decimal("0.015")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         total = amount + fee
         if Decimal(user.balance) < total:
             raise InsufficientBalanceError("Insufficient balance including cash-out fee.")
-        user.balance = Decimal(user.balance) - total
+        self._debit(user.id, total, "Insufficient balance including cash-out fee.")
         tx = Transaction(
             user_id=user.id,
             kind="CASH_OUT",
@@ -125,15 +153,15 @@ class WalletService:
             fee=fee,
         )
         db.session.add(tx)
-        db.session.commit()
+        self._finish(commit)
         return tx
 
-    def debit_for_payment(self, user_id: int, *, kind: str, title: str, counterparty: str, amount_raw):
+    def debit_for_payment(self, user_id: int, *, kind: str, title: str, counterparty: str, amount_raw, commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)
         if Decimal(user.balance) < amount:
             raise InsufficientBalanceError("Insufficient balance.")
-        user.balance = Decimal(user.balance) - amount
+        self._debit(user.id, amount)
         tx = Transaction(
             user_id=user.id,
             kind=kind,
@@ -144,7 +172,7 @@ class WalletService:
             amount=amount,
         )
         db.session.add(tx)
-        db.session.commit()
+        self._finish(commit)
         return tx
 
     def dashboard_stats(self, user_id: int, days: int = 1):

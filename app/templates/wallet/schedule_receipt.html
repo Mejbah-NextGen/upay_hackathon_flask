@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Scheduled payment summary · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Payment instruction</span><h1>Scheduled payment summary</h1><p>{{ summary }}</p></div><a class="btn btn-soft" href="{{ url_for('wallet.history', scope='scheduled') }}">Open Report</a></div>
+<section class="section-card receipt-card">
+  <div class="section-head"><h2>Schedule details</h2><span class="status-badge {{ 'status-success' if item.status == 'COMPLETED' else 'status-other' }}">{{ item.status|title }}</span></div>
+  <dl class="receipt-details">
+    <div><dt>Schedule ID</dt><dd>{{ item.id }}</dd></div><div><dt>Account holder</dt><dd>{{ current_user.full_name }}</dd></div>
+    <div><dt>Due date and time (BD)</dt><dd>{{ local_time(item.due_at).strftime('%d %b %Y, %I:%M %p') }}</dd></div><div><dt>Type</dt><dd>{{ item.kind|replace('_', ' ')|title }}</dd></div>
+    <div><dt>Recipient / authorization</dt><dd>{{ item.recipient_name or '—' }}</dd></div><div><dt>Recipient / account number</dt><dd>{{ item.recipient_number }}</dd></div>
+    <div><dt>Provider</dt><dd>{{ item.provider or '—' }}</dd></div><div><dt>Category</dt><dd>{{ item.category|replace('_', ' ')|title if item.category else '—' }}</dd></div>
+    <div><dt>Amount</dt><dd>৳ {{ '%.2f'|format(item.amount) }}</dd></div><div><dt>Mode</dt><dd>{{ 'Auto pay' if item.auto_pay else 'Manual payment' }}</dd></div>
+    <div><dt>Frequency</dt><dd>{{ item.frequency|replace('_', ' ')|title }}</dd></div><div><dt>Note</dt><dd>{{ item.note or 'No note' }}</dd></div>
+    {% if item.last_error %}<div><dt>Processing message</dt><dd class="debit">{{ item.last_error }}</dd></div>{% endif %}
+  </dl>
+  {% if item.transaction_id %}<p><a class="btn btn-soft" href="{{ url_for('wallet.receipt', transaction_id=item.transaction_id) }}">View completed transaction receipt</a></p>{% endif %}
+  <h2>Print / download schedule</h2>
+  <form class="report-export-form" method="get" action="{{ url_for('wallet.download_schedule_receipt', schedule_id=item.id) }}"><label for="scheduleReceiptFormat">Choose format</label><select id="scheduleReceiptFormat" name="format"><option value="pdf">PDF (.pdf)</option><option value="jpg">Image (.jpg)</option></select><button class="btn btn-primary" type="submit">Download summary</button></form>
+  <p class="muted">Scheduled amounts are reported separately from wallet transactions. A completed schedule links to its ledger receipt and is never counted twice.</p>
+</section>
+{% endblock %}

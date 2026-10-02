@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 
 class Config:
@@ -13,6 +15,11 @@ class Config:
     DEMO_OTP = os.getenv("DEMO_OTP", "123456")
     APP_NAME = os.getenv("APP_NAME", "UpayX")
     CURRENCY_SYMBOL = "৳"
+    MAX_CONTENT_LENGTH = 6 * 1024 * 1024
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+    ASSISTANT_MODEL = os.getenv("ASSISTANT_MODEL", "gpt-4.1-mini")
+    ASSISTANT_API_ENABLED = bool(OPENAI_API_KEY)
+    SCHEDULE_AUTO_RUN_ON_REQUEST = True
 
 
 class DevelopmentConfig(Config):

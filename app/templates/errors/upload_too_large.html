@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Picture too large · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="section-card"><h1>Picture too large</h1><p>Choose a JPG, PNG or WebP profile picture under 5 MB, then try again.</p><a class="btn btn-primary" href="{{ url_for('profile.index') }}">Return to Profile</a></section>
+{% endblock %}
+{% block auth_content %}<main class="auth-card"><h1>Upload too large</h1><p>Please use a smaller file.</p><a href="{{ url_for('auth.login') }}">Sign in</a></main>{% endblock %}

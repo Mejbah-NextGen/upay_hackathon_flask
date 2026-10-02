@@ -36,11 +36,12 @@ class AccountTests(AppTestCase):
             self.assertNotIn("pending_mobile", session)
 
     def test_registration_rejects_letter_contaminated_mobile_and_bad_email(self):
+        initial_user_count = User.query.count()
         for mobile, email in (("garbage01329097776", ""), ("01329097776", "invalid-email")):
             with self.subTest(mobile=mobile, email=email):
                 response = self.client.post("/auth/signup", data={"full_name": "Test Person", "mobile": mobile, "email": email})
                 self.assertEqual(response.status_code, 400)
-                self.assertEqual(User.query.count(), 1)
+                self.assertEqual(User.query.count(), initial_user_count)
 
     def test_profile_validation_does_not_partially_update_account(self):
         self.login()

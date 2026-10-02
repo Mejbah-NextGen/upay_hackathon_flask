@@ -1,20 +1,25 @@
 {% extends 'base.html' %}
-{% block title %}Transaction History · {{ app_name }}{% endblock %}
+{% block title %}Report · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Records</span><h1>Transaction History</h1><p>Review wallet activity, references and fees in Bangladesh time.</p></div><a class="btn btn-soft" href="{{ url_for('dashboard.index', days=days or 1) }}">Dashboard</a></div>
+<div class="page-heading"><div><span class="eyebrow">Wallet records</span><h1>Report</h1><p>Review transactions, upcoming payments, receipts and filtered exports.</p></div><a class="btn btn-soft" href="{{ url_for('operations.schedules') }}">Manage auto pay</a></div>
 <section class="section-card">
   <form class="form-stack history-filters" method="get" action="{{ url_for('wallet.history') }}">
-    <label>Period
+    <label>Historical period
       <select name="days">
-        {% for count, label in [(none, 'All history'), (1, 'Today'), (7, 'Last 7 days'), (30, 'Last 30 days'), (90, 'Last 90 days')] %}
+        {% for count, label in [(none, 'All stored activity'), (1, 'Today'), (7, 'Last 7 days'), (30, 'Last 30 days'), (90, 'Last 90 days'), (120, 'Last 120 days')] %}
         <option value="{{ count or '' }}"{% if days == count %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-        {% if days and days not in [1, 7, 30, 90] %}<option value="{{ days }}" selected>Last {{ days }} days</option>{% endif %}
+        {% if days and days not in [1, 7, 30, 90, 120] %}<option value="{{ days }}" selected>Last {{ days }} days</option>{% endif %}
+      </select>
+    </label>
+    <label>Records
+      <select name="scope">
+        {% for value, label in [('all', 'Transactions and schedules'), ('transactions', 'Recorded transactions'), ('scheduled', 'Scheduled payments')] %}<option value="{{ value }}"{% if scope == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </label>
     <label>Direction
       <select name="direction">
-        <option value=""{% if not direction %} selected{% endif %}>All transactions</option>
+        <option value=""{% if not direction %} selected{% endif %}>All directions</option>
         <option value="IN"{% if direction == 'IN' %} selected{% endif %}>Money in</option>
         <option value="OUT"{% if direction == 'OUT' %} selected{% endif %}>Money out</option>
       </select>
@@ -23,24 +28,43 @@
       <select name="kind">
         <option value=""{% if not kind %} selected{% endif %}>All types</option>
         <option value="payments"{% if kind == 'payments' %} selected{% endif %}>Bill payments and recharge</option>
-        {% for item in kinds %}<option value="{{ item }}"{% if kind == item %} selected{% endif %}>{{ item|replace('_', ' ')|title }}</option>{% endfor %}
+        {% for value in kinds %}<option value="{{ value }}"{% if kind == value %} selected{% endif %}>{{ value|replace('_', ' ')|title }}</option>{% endfor %}
       </select>
     </label>
-    <label>Search history
-      <input name="q" type="search" value="{{ query }}" maxlength="100" placeholder="Provider, number or reference">
+    <label>Status
+      <select name="status">
+        <option value="">All statuses</option>
+        {% for value in ['SUCCESS', 'PENDING', 'FAILED', 'SCHEDULED', 'COMPLETED', 'CANCELLED'] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ value|replace('_', ' ')|title }}</option>{% endfor %}
+      </select>
     </label>
-    <div class="history-filter-actions"><button type="submit" class="btn btn-primary">Apply Filters</button><a class="btn btn-soft" href="{{ url_for('wallet.history') }}">Reset</a></div>
+    <label>Start date (BD)<input name="start_date" type="date" value="{{ start_date.isoformat() if start_date else '' }}"></label>
+    <label>End date (BD)<input name="end_date" type="date" value="{{ end_date.isoformat() if end_date else '' }}"></label>
+    <label>Search records<input name="q" type="search" value="{{ query }}" maxlength="100" placeholder="Name, provider, number or reference"></label>
+    <div class="history-filter-actions"><button type="submit" class="btn btn-primary">Apply filters</button><a class="btn btn-soft" href="{{ url_for('wallet.history') }}">Reset</a></div>
   </form>
+  <p class="muted">Date range overrides the historical period. Historical period applies to recorded transaction dates; schedules use their due dates. Direction, type, status and search apply to both lists.</p>
 </section>
 <section class="section-card">
-  <div class="section-head"><h2>{{ 'Today' if days == 1 else ('Last ' ~ days ~ ' days' if days else 'All history') }}</h2>{% if dates %}<span class="muted">{{ dates[0].strftime('%d %b %Y') }}{% if days != 1 %} – {{ dates[1].strftime('%d %b %Y') }}{% endif %}</span>{% endif %}</div>
+  <div class="section-head"><h2>Export this report</h2><span class="muted">Uses the filters shown above</span></div>
+  <form class="report-export-form" method="get" action="{{ url_for('wallet.export_report') }}">
+    {% for name, value in export_args.items() %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <label for="reportFormat">Download format</label>
+    <select name="format" id="reportFormat"><option value="xlsx">Excel (.xlsx)</option><option value="pdf">PDF (.pdf)</option></select>
+    <button type="submit" class="btn btn-primary">Download filtered report</button>
+  </form>
+  <p class="muted">Exports include every matching record, fees, references, scheduled payment details and a final summary. Both formats include page formatting and page numbers when printed.</p>
+</section>
+{% if scope != 'scheduled' %}
+<section class="section-card">
+  <div class="section-head"><h2>Recorded transactions</h2>{% if dates %}<span class="muted">{{ dates[0].strftime('%d %b %Y') }}{% if days != 1 %} – {{ dates[1].strftime('%d %b %Y') }}{% endif %}</span>{% endif %}</div>
   <div class="history-summary">
     <strong>{{ totals.transaction_count }} transaction{{ '' if totals.transaction_count == 1 else 's' }}</strong>
     <span class="credit">Money in: ৳ {{ '%.2f'|format(totals.incoming_total) }}</span>
     <span class="debit">Money out with fees: ৳ {{ '%.2f'|format(totals.outgoing_total) }}</span>
+    <span>Fees: ৳ {{ '%.2f'|format(totals.fees_total) }}</span>
   </div>
-  <p class="muted">Summary totals include completed transactions only. Transaction count includes every status. Dates and times use Bangladesh time (UTC+6).</p>
-  <div class="table-wrap"><table class="data-table"><thead><tr><th>Date (BD)</th><th>Type</th><th>Counterparty</th><th>Reference</th><th>Status</th><th>Amount</th><th>Fee</th><th>Wallet Change</th></tr></thead><tbody>
+  <p class="muted">Totals include successful transactions only. Record count includes every status. Dates and times use Bangladesh time (UTC+6).</p>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Date (BD)</th><th>Type</th><th>Counterparty</th><th>Reference</th><th>Status</th><th>Amount</th><th>Fee</th><th>Wallet change</th><th>Receipt</th></tr></thead><tbody>
     {% for tx in transactions %}
     <tr>
       <td>{{ local_time(tx.created_at).strftime('%d %b %Y, %I:%M %p') }}</td>
@@ -48,9 +72,34 @@
       <td>{{ tx.counterparty or 'Wallet' }}</td><td>{{ tx.reference or '—' }}</td>
       <td><span class="status-badge {{ 'status-success' if tx.status == 'SUCCESS' else 'status-other' }} status-{{ tx.status|lower }}">{{ tx.status|replace('_', ' ')|title }}</span></td>
       <td>৳ {{ '%.2f'|format(tx.amount) }}</td><td>৳ {{ '%.2f'|format(tx.fee) }}</td>
-      <td class="{{ 'credit' if tx.direction == 'IN' else 'debit' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}৳ {{ '%.2f'|format(tx.amount if tx.direction == 'IN' else tx.amount + tx.fee) }}{% else %}৳ 0.00{% endif %}</td>
+      <td class="{{ 'credit' if wallet_change(tx) > 0 else 'debit' if wallet_change(tx) < 0 else 'muted' }}">{{ '+' if wallet_change(tx) > 0 else '' }}৳ {{ '%.2f'|format(wallet_change(tx)) }}</td>
+      <td>
+        <a class="inline-link" href="{{ url_for('wallet.receipt', transaction_id=tx.id) }}">View summary</a>
+        <details class="receipt-print"><summary>Print / download</summary><form method="get" action="{{ url_for('wallet.download_receipt', transaction_id=tx.id) }}"><label class="sr-only" for="txFormat{{ tx.id }}">Receipt format</label><select name="format" id="txFormat{{ tx.id }}"><option value="pdf">PDF</option><option value="jpg">JPG</option></select><button class="btn btn-soft" type="submit">Download</button></form></details>
+      </td>
     </tr>
-    {% else %}<tr><td colspan="8">No transactions match these filters.</td></tr>{% endfor %}
+    {% else %}<tr><td colspan="9">No transactions match these filters.</td></tr>{% endfor %}
   </tbody></table></div>
 </section>
+{% endif %}
+{% if scope != 'transactions' %}
+<section class="section-card">
+  <div class="section-head"><h2>Scheduled payments</h2><a class="inline-link" href="{{ url_for('operations.schedules') }}">Create or manage a schedule</a></div>
+  <div class="history-summary"><strong>{{ schedule_totals.schedule_count }} scheduled record{{ '' if schedule_totals.schedule_count == 1 else 's' }}</strong><span>{{ schedule_totals.scheduled_count }} awaiting payment</span><span>Planned principal: ৳ {{ '%.2f'|format(schedule_totals.scheduled_total) }}</span><span>{{ schedule_totals.auto_pay_count }} auto-pay installment{{ '' if schedule_totals.auto_pay_count == 1 else 's' }}</span></div>
+  <p class="muted">Planned amounts are separate from wallet totals. A completed schedule links to its transaction receipt, so the payment is counted once.</p>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Due date (BD)</th><th>Type</th><th>Recipient / provider</th><th>Mode</th><th>Status</th><th>Amount</th><th>Summary</th></tr></thead><tbody>
+    {% for item in schedules %}
+    <tr>
+      <td>{{ local_time(item.due_at).strftime('%d %b %Y, %I:%M %p') }}</td>
+      <td>{{ item.kind|replace('_', ' ')|title }}<br><small class="muted">{{ item.frequency|replace('_', ' ')|title }}</small></td>
+      <td>{{ item.recipient_name or item.provider or 'Recipient' }}<br><small class="muted">{{ item.recipient_number }}{% if item.provider %} · {{ item.provider }}{% endif %}</small>{% if item.last_error %}<br><small class="debit">{{ item.last_error }}</small>{% endif %}</td>
+      <td>{{ 'Auto pay' if item.auto_pay else 'Manual' }}</td>
+      <td><span class="status-badge {{ 'status-success' if item.status == 'COMPLETED' else 'status-other' }}">{{ item.status|title }}</span></td>
+      <td>৳ {{ '%.2f'|format(item.amount) }}</td>
+      <td><a class="inline-link" href="{{ url_for('wallet.schedule_receipt', schedule_id=item.id) }}">View summary</a>{% if item.transaction_id %}<br><a class="inline-link" href="{{ url_for('wallet.receipt', transaction_id=item.transaction_id) }}">Completed receipt</a>{% endif %}<details class="receipt-print"><summary>Print / download</summary><form method="get" action="{{ url_for('wallet.download_schedule_receipt', schedule_id=item.id) }}"><label class="sr-only" for="scheduleFormat{{ item.id }}">Schedule format</label><select name="format" id="scheduleFormat{{ item.id }}"><option value="pdf">PDF</option><option value="jpg">JPG</option></select><button class="btn btn-soft" type="submit">Download</button></form></details></td>
+    </tr>
+    {% else %}<tr><td colspan="7">No scheduled payments match these filters.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
 {% endblock %}

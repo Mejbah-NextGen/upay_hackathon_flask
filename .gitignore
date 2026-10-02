@@ -4,4 +4,7 @@ __pycache__/
 .env
 instance/*.db
 .pytest_cache/
+.tmp/
+artifacts/
+tmp/export-qa/
 .DS_Store

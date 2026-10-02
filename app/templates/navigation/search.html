@@ -13,7 +13,7 @@
 </section>
 {% if query %}
 <section class="section-card">
-  <div class="section-head"><h2>Your transactions <span class="muted">({{ transaction_page.total }})</span></h2><a href="{{ url_for('wallet.history') }}">Full history</a></div>
+  <div class="section-head"><h2>Your transactions <span class="muted">({{ transaction_page.total }})</span></h2><a href="{{ url_for('wallet.history') }}">Full Report</a></div>
   {% if transaction_page.items %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Date (BD)</th><th>Transaction</th><th>Provider / Recipient</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead><tbody>
   {% for tx in transaction_page.items %}<tr><td>{{ ui_local_time(tx.created_at).strftime('%d %b %Y, %H:%M') }}</td><td>{{ tx.title }}</td><td>{{ tx.counterparty or '-' }}</td><td>{{ tx.reference or '-' }}</td><td class="{{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</td><td>{{ tx.status|replace('_', ' ')|title }}</td></tr>{% endfor %}
   </tbody></table></div>{% else %}<p class="muted">No matching transactions in your history.</p>{% endif %}

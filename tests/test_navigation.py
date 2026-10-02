@@ -69,7 +69,7 @@ class NavigationTests(AppTestCase):
                 self.assertEqual(self.client.get(url).status_code, 200)
         for url, label in [
             ("/wallet/add-money", "Add Money"), ("/wallet/send-money", "Transfer Money"),
-            ("/wallet/history", "History"), ("/payments", "Payment"),
+            ("/wallet/history", "Report"), ("/payments", "Payment"),
             ("/payments/financial-services", "Financial Services"),
             ("/payments/other-services", "Other Services"),
             ("/payments/pay-bill?category=credit-card", "Financial Services"),

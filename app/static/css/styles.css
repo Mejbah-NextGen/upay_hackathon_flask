@@ -201,3 +201,77 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #75
   .large-services{grid-template-columns:repeat(3,minmax(0,1fr))}.large-services .service-tile{min-height:110px}.quick-pay-grid{grid-template-columns:repeat(3,1fr)}
   .hero-banner p{font-size:12px}.page-heading h1{font-size:27px}.transaction-row{grid-template-columns:38px 1fr}.tx-amount{grid-column:2}.promo-card{min-height:220px}
 }
+
+.page-back{display:inline-flex;align-items:center;gap:8px;color:var(--blue);font-size:13px;font-weight:750;margin:0 0 18px;min-height:32px}
+.page-back:hover{text-decoration:underline}
+.page-back span{font-size:19px}
+.avatar{overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.recipient-status{margin:-5px 0 0;padding:11px 13px;border-radius:11px;border:1px solid #dbe4ee;background:#f6f9fd;font-size:12px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
+.recipient-status[data-state=registered]{background:#ecfff6;border-color:#b9efd5;color:#137647}
+.recipient-status[data-state=blocked],.recipient-status[data-state=invalid]{background:#fff0f2;border-color:#ffc8d0;color:#a82034}
+.recipient-status[data-state=not_registered],.recipient-status[data-state=unavailable]{background:#fff9e6;border-color:#f9e39b;color:#8a6800}
+.recipient-status[data-state=loading]{color:var(--blue)}
+.schedule-preview{padding:13px 14px;border-radius:12px;background:#eef5ff;border:1px solid #d7e8fb;font-size:12px;line-height:1.65;color:#27405f;margin:0}
+button:disabled{cursor:wait;opacity:.6}
+.assistant-toggle{color:var(--blue);font-size:23px;background:#eef5ff;border-color:#d7e8fb;flex-shrink:0}
+.assistant-toggle:hover{background:#e1edfd}
+.assistant-dialog{position:fixed;inset:0 0 0 auto;margin:0;width:min(470px,100%);height:100dvh;max-width:100%;max-height:100dvh;border:0;border-left:1px solid var(--border);background:#fff;color:var(--ink);padding:24px;box-shadow:-16px 0 60px rgba(16,36,63,.2);overflow:hidden}
+.assistant-dialog[open]{display:flex;flex-direction:column;gap:12px}
+.assistant-dialog::backdrop{background:rgba(16,36,63,.38)}
+.assistant-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0}
+.assistant-header h2{font-size:23px;margin:3px 0 0}
+.assistant-header .icon-button{flex-shrink:0;font-size:14px}
+.assistant-mode{margin:0;color:var(--blue);font-size:12px;font-weight:800}
+.assistant-mode span{font-weight:500;color:var(--muted)}
+.assistant-privacy{font-size:11px;line-height:1.5;margin:0;color:var(--muted);flex-shrink:0}
+.assistant-messages{flex:1;min-height:100px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;padding:8px 2px}
+.assistant-message{border-radius:14px;padding:13px 14px;border:1px solid var(--border);max-width:94%;overflow-wrap:anywhere;flex-shrink:0}
+.assistant-message strong{font-size:11px;color:var(--blue)}
+.assistant-message p{font-size:13px;line-height:1.65;margin:5px 0 0;white-space:pre-wrap}
+.assistant-message-guide{align-self:flex-start;background:#f6f9fd}
+.assistant-message-user{align-self:flex-end;background:#eef5ff;border-color:#d7e8fb}
+.assistant-links{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.assistant-links .btn{font-size:11px;min-height:32px;padding:5px 10px}
+.assistant-prompts{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0}
+.assistant-prompts button{padding:7px 10px;border:1px solid #dbe4ee;border-radius:999px;background:#fff;color:var(--blue);font-size:11px;font-weight:750}
+.assistant-prompts button:hover{background:#eef5ff}
+.assistant-status{font-size:11px;line-height:1.5;color:var(--muted);margin:0;min-height:16px;flex-shrink:0}
+.assistant-form{display:flex;align-items:end;gap:8px;flex-shrink:0}
+.assistant-form textarea{flex:1;min-width:0;resize:none;border:1px solid #dbe4ee;border-radius:12px;padding:11px 12px;font:inherit;font-size:13px;line-height:1.5;min-height:64px;max-height:120px;color:var(--ink)}
+.assistant-form textarea:focus{outline:3px solid #d7e8fb;border-color:#75afea}
+.assistant-form .btn{min-height:44px;padding:0 16px;font-size:12px}
+.assistant-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
+.assistant-footer small{font-size:10px;color:var(--muted)}
+.text-button{border:0;background:none;color:var(--blue);font-size:11px;font-weight:750;padding:4px;cursor:pointer}
+.assistant-page-answer{border-top:1px solid var(--border);margin-top:24px;padding-top:20px;font-size:14px}
+.assistant-answer-text{white-space:pre-wrap;line-height:1.7}
+.report-export-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.report-export-form label{font-size:13px;font-weight:750;color:#42536a}
+.report-export-form select,.receipt-print select{min-height:42px;border:1px solid #dbe4ee;border-radius:10px;padding:8px 12px;background:#fff;color:var(--ink);font:inherit;font-size:13px}
+.report-export-form select:focus,.receipt-print select:focus{outline:3px solid #d7e8fb;border-color:#75afea}
+.receipt-card{max-width:980px}
+.receipt-card h2{font-size:18px}
+.receipt-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0 0 26px}
+.receipt-details>div{border-bottom:1px solid var(--border);padding:14px 0;min-width:0}
+.receipt-details dt{font-size:11px;font-weight:750;color:var(--muted);margin-bottom:6px}
+.receipt-details dd{font-size:14px;font-weight:650;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.data-table td{vertical-align:top}
+.data-table .btn{min-height:34px;padding:5px 10px;font-size:11px;white-space:nowrap}
+.data-table td>form{margin-top:8px}
+.receipt-print{margin-top:9px;min-width:150px}
+.receipt-print summary{font-size:12px;font-weight:750;color:var(--blue);cursor:pointer;white-space:nowrap;min-height:28px}
+.receipt-print form{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px;background:#f6f9fd;border:1px solid var(--border);border-radius:10px}
+.receipt-print select{min-height:34px;padding:5px 8px;font-size:11px}
+@media(max-width:620px){
+  .assistant-dialog{padding:18px 16px max(18px,env(safe-area-inset-bottom));width:100%}
+  .assistant-header h2{font-size:21px}
+  .assistant-message{max-width:96%}
+  .assistant-form .btn{padding:0 12px}
+  .receipt-details{grid-template-columns:1fr}
+  .report-export-form{align-items:stretch}
+  .report-export-form label{flex-basis:100%}
+  .report-export-form select{flex:1}
+  .report-export-form .btn{flex:1;font-size:12px}
+  .section-head{align-items:flex-start;flex-wrap:wrap}
+}

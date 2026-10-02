@@ -3,9 +3,10 @@
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">Agent Service</span><h1>Cash Out</h1><p>Demo cash-out includes a 1.5% fee.</p></div><div class="balance-pill">Balance: <strong>৳ {{ '%.2f'|format(current_user.balance) }}</strong></div></div>
 <section class="section-card form-card narrow-card">
-  <form method="post" class="form-stack" data-cash-out>
+  <form method="post" class="form-stack" data-cash-out data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="CASH_OUT">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Agent Number<input name="agent_number" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('agent_number', '') }}" required></label>
+    <label>Agent Number<input name="agent_number" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('agent_number', '') }}" data-recipient-number aria-describedby="cashRecipientStatus" required></label>
+    <p class="recipient-status" id="cashRecipientStatus" data-recipient-status role="status">Enter an agent number to check its registered name and safety status.</p>
     <label>Amount<input name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" placeholder="1000" value="{{ request.form.get('amount', '') }}" required></label>
     <p class="muted" data-cash-out-summary aria-live="polite">Fee: ৳ 0.00 · Total deduction: ৳ 0.00</p>
     <button class="btn btn-primary" type="submit">Cash Out</button>

@@ -97,7 +97,7 @@ class PaymentTests(AppTestCase):
                     "category": category, "provider": details["providers"][0], "account_no": "REF-12345", "amount": "10.00",
                 })
                 self.assertEqual(302, response.status_code)
-                self.assertTrue(response.location.endswith("/wallet/history"))
+                self.assertIn("/wallet/transaction/", response.location)
                 tx = Transaction.query.order_by(Transaction.id.desc()).first()
                 self.assertEqual("BILL_PAYMENT", tx.kind)
                 self.assertEqual(f"{details['label']} Payment", tx.title)

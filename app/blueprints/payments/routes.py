@@ -40,11 +40,11 @@ def recharge():
     status = 200
     if request.method == "POST":
         try:
-            get_container().payments.mobile_recharge(
+            transaction = get_container().payments.mobile_recharge(
                 session["user_id"], values.get("operator", ""), values.get("mobile", ""), values.get("amount", ""),
             )
-            flash("Demo mobile recharge completed and recorded in history.", "success")
-            return redirect(url_for("wallet.history"))
+            flash("Demo mobile recharge completed and recorded in Report.", "success")
+            return redirect(url_for("wallet.receipt", transaction_id=transaction.id))
         except (ValidationError, InsufficientBalanceError) as exc:
             flash(str(exc), "danger")
             status = 400
@@ -65,12 +65,12 @@ def pay_bill():
         status = 400
     elif request.method == "POST" and values.get("action") != "choose-category":
         try:
-            get_container().payments.pay_bill(
+            transaction = get_container().payments.pay_bill(
                 session["user_id"], values.get("provider", ""), values.get("account_no", ""),
                 values.get("amount", ""), category=category,
             )
-            flash(f"Demo {details['label'].lower()} payment completed and recorded in history.", "success")
-            return redirect(url_for("wallet.history"))
+            flash(f"Demo {details['label'].lower()} payment completed and recorded in Report.", "success")
+            return redirect(url_for("wallet.receipt", transaction_id=transaction.id))
         except (ValidationError, InsufficientBalanceError) as exc:
             flash(str(exc), "danger")
             status = 400

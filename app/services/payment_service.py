@@ -4,26 +4,29 @@ from app.services.auth_service import AuthService
 from app.services.exceptions import ValidationError
 from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS
 from app.services.wallet_service import WalletService
+from app.services.recipient_service import assert_not_blocked
 
 
 class PaymentService:
     def __init__(self, wallet: WalletService):
         self.wallet = wallet
 
-    def mobile_recharge(self, user_id: int, operator: str, mobile: str, amount):
+    def mobile_recharge(self, user_id: int, operator: str, mobile: str, amount, *, commit=True):
         operator = (operator or "").strip()
         if operator not in MOBILE_OPERATORS:
             raise ValidationError("Choose a supported mobile operator.")
         mobile = AuthService.normalize_mobile(mobile)
+        assert_not_blocked(mobile)
         return self.wallet.debit_for_payment(
             user_id,
             kind="MOBILE_RECHARGE",
             title="Mobile Recharge",
             counterparty=f"{operator} • {mobile}",
             amount_raw=amount,
+            commit=commit,
         )
 
-    def pay_bill(self, user_id: int, provider: str, account_no: str, amount, category: str = ""):
+    def pay_bill(self, user_id: int, provider: str, account_no: str, amount, category: str = "", *, commit=True):
         category = (category or "").strip()
         if category not in BILL_CATEGORIES:
             raise ValidationError("Choose a valid bill category.")
@@ -34,12 +37,14 @@ class PaymentService:
         account_no = (account_no or "").strip()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 /._-]{1,59}", account_no):
             raise ValidationError("Enter a valid account or payment reference (2–60 letters, numbers, spaces or / . _ -).")
+        assert_not_blocked(account_no)
         return self.wallet.debit_for_payment(
             user_id,
             kind="BILL_PAYMENT",
             title=f"{details['label']} Payment",
             counterparty=f"{provider} • {account_no}",
             amount_raw=amount,
+            commit=commit,
         )
 
     def savings_plan(self, monthly_amount, months):
@@ -51,6 +56,7 @@ class PaymentService:
     def money_request(self, user_id, recipient_mobile, amount, note=""):
         user = self.wallet.get_user(user_id)
         recipient_mobile = AuthService.normalize_mobile(recipient_mobile)
+        assert_not_blocked(recipient_mobile)
         if recipient_mobile == user.mobile:
             raise ValidationError("Choose another mobile number to request money from.")
         amount = self.wallet.parse_amount(amount)

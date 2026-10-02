@@ -1,9 +1,29 @@
 {% extends 'base.html' %}
 {% block title %}Profile · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Account</span><h1>My Profile</h1><p>Manage your demo account information.</p></div></div>
+<div class="page-heading"><div><span class="eyebrow">Account</span><h1>My Profile</h1><p>Your personal details, picture and account preferences.</p></div></div>
 <div class="profile-grid">
-  <section class="profile-summary section-card"><div class="avatar xl">{{ user.full_name[0] }}</div><h2>{{ user.full_name }}</h2><p>{{ user.mobile }}</p><span class="status-badge">✓ Verified Account</span><div class="profile-balance"><small>Wallet Balance</small><strong>৳ {{ '%.2f'|format(user.balance) }}</strong></div></section>
-  <section class="section-card form-card"><form method="post" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Full Name<input name="full_name" value="{{ request.form.get('full_name', user.full_name) }}" maxlength="120" required></label><label>Mobile Number<input value="{{ user.mobile }}" disabled></label><label>Email<input type="email" name="email" value="{{ request.form.get('email', user.email or '') }}" maxlength="120" placeholder="name@example.com"></label><button class="btn btn-primary" type="submit">Save Changes</button><a class="btn btn-soft" href="{{ url_for('profile.settings') }}">Settings</a></form></section>
+  <section class="profile-summary section-card">
+    <div class="avatar xl">{% if profile_details.photo_data %}<img src="{{ url_for('profile.photo') }}" alt="Your profile picture" style="width:100%;height:100%;object-fit:cover;border-radius:50%">{% else %}{{ user.full_name[0] }}{% endif %}</div>
+    <h2>{{ profile_details.nickname or user.full_name }}</h2><p>{{ user.full_name }}</p><p>{{ user.mobile }}</p>
+    <span class="status-badge">{{ '✓ Verified Account' if user.verified else 'Verification pending' }}</span>
+    <div class="profile-balance"><small>Wallet Balance</small><strong>{{ currency }} {{ '%.2f'|format(user.balance) }}</strong></div>
+    <div class="profile-balance"><small>Member since</small><strong style="font-size:16px">{{ ui_local_time(user.created_at).strftime('%d %b %Y') }}</strong></div>
+    <a class="btn btn-soft btn-block" style="margin-top:16px" href="{{ url_for('profile.settings') }}">Notification settings</a>
+  </section>
+  <section class="section-card form-card" style="margin-top:0">
+    <form method="post" enctype="multipart/form-data" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div><span class="eyebrow">Personal information</span><h2>Make it yours</h2></div>
+      <label>Full Name<input name="full_name" autocomplete="name" value="{{ request.form.get('full_name', user.full_name) }}" maxlength="120" required></label>
+      <label>Nickname<input name="nickname" value="{{ request.form.get('nickname', profile_details.nickname or '') }}" maxlength="40" placeholder="What should we call you?"></label>
+      <label>Mobile Number<input value="{{ user.mobile }}" disabled><small class="muted">This number identifies your wallet account.</small></label>
+      <label>Email<input type="email" name="email" autocomplete="email" value="{{ request.form.get('email', user.email or '') }}" maxlength="120" placeholder="name@example.com"></label>
+      <label>Address<textarea name="address" autocomplete="street-address" maxlength="300" rows="3" placeholder="Street, area, city and postal code">{{ request.form.get('address', profile_details.address or '') }}</textarea></label>
+      <label>Profile picture<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"><small class="muted">JPG, PNG or WebP · Up to 5 MB. Your picture is saved with your profile.</small></label>
+      {% if profile_details.photo_data %}<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" name="remove_photo" style="width:18px;height:18px">Remove current picture</label>{% endif %}
+      <button class="btn btn-primary" type="submit">Save Changes</button>
+    </form>
+  </section>
 </div>
 {% endblock %}

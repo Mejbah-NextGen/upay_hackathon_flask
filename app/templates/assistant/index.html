@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}App Assistant · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Your wallet guide</span><h1>App Assistant</h1><p>Get help with this app and insights from your own demo wallet activity.</p></div></div>
+<section class="section-card form-card narrow-card">
+  <p class="assistant-mode">{{ 'AI app assistant' if assistant_hosted else 'Local app guide · works without an AI connection' }}</p>
+  <p class="muted">{% if assistant_hosted %}Your questions and account totals are sent to the configured AI provider. Do not include passwords or OTPs.{% else %}Answers use app guidance and your account totals. Free-form AI answers need a configured provider.{% endif %} The assistant provides guidance; confirm payments in the app's forms.</p>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Question<textarea name="question" rows="3" maxlength="1200" required placeholder="What did I spend this month?">{{ question }}</textarea></label>
+    <button class="btn btn-primary" type="submit">Ask Assistant</button>
+  </form>
+  {% if error %}<p class="flash danger" role="alert">{{ error }}</p>{% endif %}
+  {% if result %}
+  <div class="assistant-page-answer"><strong>{{ result.mode_label }}</strong>{% if result.notice %}<p class="muted">{{ result.notice }}</p>{% endif %}<p class="assistant-answer-text">{{ result.answer }}</p>
+    <div class="assistant-links">{% for link in result.links %}<a class="btn btn-soft" href="{{ link.url }}">{{ link.label }}</a>{% endfor %}</div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

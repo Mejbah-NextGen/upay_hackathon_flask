@@ -13,6 +13,7 @@ class TestConfig(DevelopmentConfig):
     SECRET_KEY = "isolated-test-secret"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
+    ASSISTANT_API_ENABLED = False
 
 
 class AppTestCase(unittest.TestCase):
