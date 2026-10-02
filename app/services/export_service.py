@@ -8,6 +8,8 @@ from xml.etree import ElementTree
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from flask import has_app_context
+
 from app.services.reporting_service import local_datetime, schedule_totals, transaction_totals, wallet_change
 
 
@@ -139,7 +141,7 @@ def _build_pdf(story, *, title, landscape=False):
 
 def receipt_fields(user, transaction):
     change = wallet_change(transaction)
-    return [
+    fields = [
         ("Account holder", user.full_name), ("Wallet number", user.mobile),
         ("Transaction ID", str(transaction.id)), ("Reference", transaction.reference or "-"),
         ("Date and time (BD)", local_datetime(transaction.created_at).strftime("%d %b %Y, %H:%M") + " BD"),
@@ -150,6 +152,21 @@ def receipt_fields(user, transaction):
         ("Amount", _money(transaction.amount)), ("Fee", _money(transaction.fee)),
         ("Wallet change", _money(change)), ("Note", transaction.note or "No note"),
     ]
+    if (has_app_context() and transaction.kind == "BILL_PAYMENT"
+            and getattr(transaction, "id", None) and getattr(user, "id", None)
+            and getattr(transaction, "user_id", None) == user.id):
+        from app.domain.payment_plans import PaymentInvoice
+        from app.services.service_catalog import BILL_CATEGORIES
+
+        invoice = PaymentInvoice.query.filter_by(transaction_id=transaction.id, user_id=user.id).first()
+        if invoice:
+            fields[4:4] = [
+                ("Invoice number", invoice.invoice_number),
+                ("Bill account", invoice.account_reference),
+                ("Bill invoice reference", invoice.invoice_reference or "Not supplied"),
+                ("Category", BILL_CATEGORIES.get(invoice.category, {}).get("label", invoice.category)),
+            ]
+    return fields
 
 
 def receipt_summary(transaction):

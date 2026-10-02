@@ -5,6 +5,7 @@
 <section class="section-card form-card narrow-card">
   <form method="post" class="form-stack" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="BILL_PAYMENT">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="submission_token" value="{{ values.get('submission_token', '') }}">
     <label>Bill / Service Category
       <select name="category" data-bill-category required>
         <option value="" {% if values.get('category', '') not in categories %}selected{% endif %}>Choose a category</option>
@@ -28,8 +29,10 @@
       <input name="account_no" value="{{ values.get('account_no', '') }}" placeholder="Enter the reference from your bill" minlength="2" maxlength="60" data-recipient-number aria-describedby="billRecipientStatus" required>
     </label>
     <p class="recipient-status" id="billRecipientStatus" data-recipient-status role="status">Enter your reference to check the registered account or authorizing provider.</p>
+    <label>Bill Invoice Reference (Optional)<input name="invoice_reference" value="{{ values.get('invoice_reference', '') }}" minlength="2" maxlength="60" placeholder="Enter the invoice number printed on the bill"></label>
     <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="620.00" required></label>
-    <p class="muted">Demo payment: your wallet balance will be reduced and a receipt will appear in Report. No payment is sent to the provider.</p>
+    <p class="muted">A unique invoice number and transaction reference are generated for every completed payment. A supplied provider invoice cannot be paid twice. Demo payment reduces wallet balance; no payment is sent to the provider.</p>
+    {% set qr_kind = 'BILL_PAYMENT' %}{% set qr_reference = values.get('account_no', '') %}{% set qr_provider = values.get('provider', '') %}{% set qr_amount = values.get('amount', '') %}{% include 'components/qr.html' %}
     <button class="btn btn-primary" type="submit">Pay with Demo Balance</button>
   </form>
 </section>

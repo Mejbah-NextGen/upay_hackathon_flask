@@ -1,19 +1,33 @@
 {% extends 'base.html' %}
 {% block title %}Savings Plan · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Savings Plan</h1><p>See how regular monthly contributions add up over time.</p></div></div>
+<div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Savings Plan</h1><p>Choose a fixed monthly contribution and tenure. Estimate your maturity amount at a demo annual return of 10%.</p></div></div>
 <section class="section-card form-card narrow-card">
   <form method="post" class="form-stack">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Plan Name<input name="name" value="{{ values.get('name', '') }}" maxlength="80" placeholder="Emergency fund"></label>
     <label>Monthly Contribution (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="1000.00" required></label>
-    <label>Duration (Months)<input name="months" value="{{ values.get('months', '12') }}" type="number" min="1" max="120" step="1" required></label>
-    <button class="btn btn-primary" type="submit">Calculate Savings</button>
+    <label>Tenure (Months)<input name="months" value="{{ values.get('months', '12') }}" type="number" min="1" max="120" step="1" required></label>
+    <p class="muted">Tenure: 1–120 months. Annual demo rate: 10%. Each saved plan keeps its monthly contribution and tenure fixed.</p>
+    <div class="button-row"><button class="btn btn-light" name="action" value="calculate" type="submit">Calculate Savings</button><button class="btn btn-primary" name="action" value="save" type="submit">Save Savings Plan</button></div>
   </form>
   {% if plan %}
   <div class="section-head"><h2>Your Savings Plan</h2></div>
-  <p>৳ {{ '%.2f'|format(plan.monthly_amount) }} each month for {{ plan.months }} months.</p>
+  <p>{{ t('Fixed monthly contribution') }}: ৳ {{ '%.2f'|format(plan.monthly_amount) }} · {{ t('Tenure') }}: {{ plan.months }} {{ t('months') }}.</p>
   <p><strong>Total contributions: ৳ {{ '%.2f'|format(plan.total) }}</strong></p>
+  <p>Estimated return at 10% annually: ৳ {{ '%.2f'|format(plan.estimated_return) }}</p>
+  <p><strong>Estimated maturity: ৳ {{ '%.2f'|format(plan.estimated_maturity) }}</strong></p>
   {% endif %}
-  <p class="muted">This calculator assumes regular contributions and excludes interest and fees. It does not open an account or move wallet balance.</p>
+  <p class="muted">Estimate assumes contributions at the start of each month. Simple annual return is prorated for the time each contribution remains saved; it is not compounded. Taxes and fees are excluded. This demo estimate is not a guaranteed return. Saving a plan records your goal and does not open an account or move wallet balance.</p>
+</section>
+<section class="section-card">
+  <div class="section-head"><h2>Saved Savings Plans</h2></div>
+  {% if saved_plans %}
+  <div class="table-wrap"><table class="transaction-table"><thead><tr><th>Plan</th><th>Monthly</th><th>Tenure</th><th>Contributions</th><th>Estimated Return</th><th>Estimated Maturity</th><th>Matures</th><th>Action</th></tr></thead><tbody>
+  {% for saved in saved_plans %}
+  <tr><td data-user-content>{{ saved.name }}</td><td>৳ {{ '%.2f'|format(saved.monthly_amount) }}</td><td>{{ saved.months }} {{ t('months') }}</td><td>৳ {{ '%.2f'|format(saved.contribution_total) }}</td><td>৳ {{ '%.2f'|format(saved.estimated_return) }}</td><td>৳ {{ '%.2f'|format(saved.estimated_maturity) }}</td><td>{{ saved.matures_on.strftime('%d %b %Y') }}</td><td><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="plan_id" value="{{ saved.id }}"><button class="btn btn-light" name="action" value="archive">Archive</button></form></td></tr>
+  {% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="muted">Save a plan to keep your fixed contribution, tenure and estimated maturity here.</p>{% endif %}
 </section>
 {% endblock %}

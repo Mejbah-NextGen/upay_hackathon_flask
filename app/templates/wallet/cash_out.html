@@ -1,15 +1,35 @@
 {% extends 'base.html' %}
 {% block title %}Cash Out · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">Agent Service</span><h1>Cash Out</h1><p>Demo cash-out includes a 1.5% fee.</p></div><div class="balance-pill">Balance: <strong>৳ {{ '%.2f'|format(current_user.balance) }}</strong></div></div>
-<section class="section-card form-card narrow-card">
-  <form method="post" class="form-stack" data-cash-out data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="CASH_OUT">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Agent Number<input name="agent_number" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('agent_number', '') }}" data-recipient-number aria-describedby="cashRecipientStatus" required></label>
-    <p class="recipient-status" id="cashRecipientStatus" data-recipient-status role="status">Enter an agent number to check its registered name and safety status.</p>
-    <label>Amount<input name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" placeholder="1000" value="{{ request.form.get('amount', '') }}" required></label>
-    <p class="muted" data-cash-out-summary aria-live="polite">Fee: ৳ 0.00 · Total deduction: ৳ 0.00</p>
-    <button class="btn btn-primary" type="submit">Cash Out</button>
-  </form>
-</section>
+<div class="page-heading"><div><span class="eyebrow">Agent &amp; ATM</span><h1>{{ t('Cash Out') }}</h1><p>{{ t('Choose an agent or ATM and review your fee and remaining balance.') }}</p></div><div class="balance-pill">{{ t('Balance') }}: <strong>৳ {{ '%.2f'|format(current_user.balance) }}</strong></div></div>
+<nav class="wallet-channel-tabs" aria-label="Cash-out channel">
+  <a class="btn {{ 'btn-primary' if channel == 'AGENT' else 'btn-soft' }}" href="{{ url_for('wallet.cash_out', channel='AGENT') }}" {% if channel == 'AGENT' %}aria-current="page"{% endif %}>{{ t('Agent Cash Out') }}</a>
+  <a class="btn {{ 'btn-primary' if channel == 'ATM' else 'btn-soft' }}" href="{{ url_for('wallet.cash_out', channel='ATM') }}" {% if channel == 'ATM' %}aria-current="page"{% endif %}>{{ t('ATM Cash Out') }}</a>
+</nav>
+<div class="form-page-grid">
+  <section class="section-card form-card">
+    <form method="post" class="form-stack" data-wallet-operation="cash-out" data-wallet-channel="{{ channel }}" data-wallet-quote="{{ url_for('wallet.quote') }}" {% if channel == 'AGENT' %}data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="CASH_OUT"{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="operation_token" value="{{ operation_token }}">
+      <input type="hidden" name="channel" value="{{ channel }}">
+      {% if channel == 'AGENT' %}
+      <label>{{ t('Agent Number') }}<input name="agent_number" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('agent_number', request.args.get('agent_number', '')) }}" data-recipient-number aria-describedby="cashRecipientStatus" required></label>
+      <p class="recipient-status" id="cashRecipientStatus" data-recipient-status role="status">{{ t('Enter an agent number to check its registered name and safety status.') }}</p>
+      {% else %}
+      <label>{{ t('Demo ATM Location') }}<select name="atm_location" data-qr-reference required>{% for code, name in atm_locations.items() %}<option value="{{ code }}" {% if request.form.get('atm_location', request.args.get('atm_location')) == code %}selected{% endif %}>{{ t(name) }}</option>{% endfor %}</select></label>
+      {% endif %}
+      <label>{{ t('Amount') }}<input name="amount" type="number" inputmode="decimal" min="{{ 500 if channel == 'ATM' else '0.01' }}" max="{{ 20000 if channel == 'ATM' else 100000 }}" step="{{ 500 if channel == 'ATM' else '0.01' }}" placeholder="1000" value="{{ request.form.get('amount', request.args.get('amount', '')) }}" required></label>
+      <div class="quick-amounts" aria-label="Suggested withdrawal amounts">{% for amount in [500, 1000, 2000, 5000] %}<button class="amount-chip" type="button" data-amount="{{ amount }}">৳ {{ amount }}</button>{% endfor %}</div>
+      <p class="muted">{{ t('ATM: demo fee 1%; withdraw multiples of ৳500, up to ৳20,000.') if channel == 'ATM' else t('Agent: demo fee 1.5%; the fee is included in your total wallet deduction.') }}</p>
+      {% include 'wallet/_quote.html' %}
+      <button class="btn btn-primary" type="submit">{{ t('Confirm Demo Cash Out') }}</button>
+    </form>
+  </section>
+  <aside class="info-card"><span class="info-icon" aria-hidden="true">🏧</span><h3>{{ t('ATM Cash Out') if channel == 'ATM' else t('Agent Cash Out') }}</h3><p>{{ t('These locations and fees are examples for this demo. A successful cash-out updates your demo wallet and creates a receipt; it does not dispense physical cash.') }}</p><p>{{ t('Check the destination and total deduction before confirming. Your receipt shows the amount, fee, transaction ID and reference.') }}</p>
+    {% set qr_kind = 'CASH_OUT' %}{% set qr_reference = request.form.get('atm_location', request.args.get('atm_location', 'ATM-DHAKA-01')) if channel == 'ATM' else request.form.get('agent_number', request.args.get('agent_number', '01944000002')) %}{% set qr_provider = '' %}
+    {% include 'components/qr.html' %}
+  </aside>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wallet.css') }}">
+<script src="{{ url_for('static', filename='js/wallet.js') }}" defer></script>
 {% endblock %}

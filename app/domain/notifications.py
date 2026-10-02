@@ -14,3 +14,11 @@ class NotificationReadState(db.Model):
         db.DateTime(timezone=True), nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+
+
+class NotificationReadReceipt(db.Model):
+    __tablename__ = "notification_read_receipts"
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
+    transaction_id = db.Column(db.Integer, db.ForeignKey("transactions.id"), primary_key=True)
+    read_at = db.Column(db.DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))

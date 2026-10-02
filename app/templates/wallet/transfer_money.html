@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Transfer Money · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Bank &amp; Visa</span><h1>{{ t('Transfer Money') }}</h1><p>{{ t('Record a demo transfer to a bank account or Visa card.') }}</p></div><div class="balance-pill">{{ t('Balance') }}: <strong>৳ {{ '%.2f'|format(current_user.balance) }}</strong></div></div>
+<nav class="wallet-channel-tabs" aria-label="Transfer destination">
+  <a class="btn {{ 'btn-primary' if channel == 'BANK' else 'btn-soft' }}" href="{{ url_for('wallet.transfer_money', channel='BANK') }}" {% if channel == 'BANK' %}aria-current="page"{% endif %}>{{ t('Bank Account') }}</a>
+  <a class="btn {{ 'btn-primary' if channel == 'VISA' else 'btn-soft' }}" href="{{ url_for('wallet.transfer_money', channel='VISA') }}" {% if channel == 'VISA' %}aria-current="page"{% endif %}>{{ t('Visa Card') }}</a>
+</nav>
+<div class="form-page-grid">
+  <section class="section-card form-card">
+    <form method="post" class="form-stack" data-wallet-operation="transfer-money" data-wallet-channel="{{ channel }}" data-wallet-quote="{{ url_for('wallet.quote') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="channel" value="{{ channel }}">
+      <input type="hidden" name="operation_token" value="{{ operation_token }}">
+      {% if channel == 'BANK' %}
+      <label>{{ t('Demo Bank') }}<select name="bank" required><option value="">{{ t('Choose a demo bank') }}</option>{% for bank in banks %}<option value="{{ bank }}" {% if request.form.get('bank') == bank %}selected{% endif %}>{{ t(bank) }}</option>{% endfor %}</select></label>
+      <label>{{ t('Transfer Method') }}<select name="rail" required><option value="NPSB" {% if request.form.get('rail', 'NPSB') == 'NPSB' %}selected{% endif %}>NPSB — {{ t('demo fee') }} ৳10</option><option value="BEFTN" {% if request.form.get('rail') in ['BEFTN', 'BFTN'] %}selected{% endif %}>BEFTN (BFTN) — {{ t('demo fee') }} ৳0</option></select></label>
+      <label>{{ t('Account Number') }}<input name="account_number" type="text" inputmode="numeric" autocomplete="off" minlength="6" maxlength="20" pattern="[0-9]{6,20}" value="{{ request.form.get('account_number', '') }}" placeholder="Demo: 1234567890" required></label>
+      {% else %}
+      <label>{{ t('Demo Visa Card Number') }}<input name="card_number" type="text" inputmode="numeric" autocomplete="off" maxlength="19" placeholder="Demo: 4111 1111 1111 1111" aria-describedby="visaHelp" required></label>
+      <p class="muted" id="visaHelp">{{ t('Use the sample card number above. Demo Visa fee: 1%. Card numbers are masked in stored records.') }}</p>
+      {% endif %}
+      <label>{{ t('Account Holder Name') if channel == 'BANK' else t('Card Holder Name') }}<input name="holder_name" type="text" minlength="2" maxlength="120" value="{{ request.form.get('holder_name', '') }}" placeholder="Demo recipient name" required></label>
+      <label>{{ t('Amount') }}<input name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" value="{{ request.form.get('amount', '') }}" placeholder="1000" required></label>
+      <label>{{ t('Note (optional)') }}<textarea name="note" rows="2" maxlength="100">{{ request.form.get('note', '') }}</textarea></label>
+      {% include 'wallet/_quote.html' %}
+      <button class="btn btn-primary" type="submit">{{ t('Confirm Demo Transfer') }}</button>
+    </form>
+  </section>
+  <aside class="info-card"><span class="info-icon" aria-hidden="true">{{ '🏦' if channel == 'BANK' else '💳' }}</span><h3>{{ 'NPSB & BEFTN' if channel == 'BANK' else 'UpayX to Visa' }}</h3><p>{{ t('This demo records an outgoing transfer and deducts your demo wallet balance, including the displayed fee. No money reaches a real bank account or card. The receipt success status confirms the local demo record.') }}</p><p>{{ t('Bank destinations are offline examples. NPSB and BEFTN are selectable demonstration methods; their fees and timing here do not represent live bank terms.') }}</p><a class="btn btn-soft" href="{{ url_for('wallet.send_money') }}">{{ t('Send Money to a Wallet') }}</a></aside>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wallet.css') }}">
+<script src="{{ url_for('static', filename='js/wallet.js') }}" defer></script>
+{% endblock %}

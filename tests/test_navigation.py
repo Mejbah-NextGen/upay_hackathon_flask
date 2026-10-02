@@ -45,6 +45,16 @@ class NavigationTests(AppTestCase):
         self.assertIn(b"/payments/pay-bill?category=gas", response.data)
         self.assertNotIn(b"No services match", response.data)
 
+    def test_bangla_search_keeps_vowel_marks_and_searches_only_own_history(self):
+        self.assertIn('gas', [service['id'] for service in find_services('গ্যাস বিল')])
+        self.transaction(title='Gas Payment', reference='OWN-BANGLA-SEARCH')
+        other=self.second_user()
+        self.transaction(title='Gas Payment',user_id=other.id,reference='OTHER-BANGLA-SEARCH')
+        response=self.client.get('/search',query_string={'q':'গ্যাস'})
+        self.assertEqual(response.status_code,200)
+        self.assertIn(b'OWN-BANGLA-SEARCH',response.data)
+        self.assertNotIn(b'OTHER-BANGLA-SEARCH',response.data)
+
     def test_search_is_server_rendered_user_scoped_and_escaped(self):
         self.transaction(title="My Gas Payment", reference="MY-PRIVATE-REF")
         other = self.second_user()
@@ -68,7 +78,8 @@ class NavigationTests(AppTestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
         for url, label in [
-            ("/wallet/add-money", "Add Money"), ("/wallet/send-money", "Transfer Money"),
+            ("/wallet/add-money", "Add Money"), ("/wallet/send-money", "Send Money"),
+            ("/wallet/transfer-money", "Transfer Money"), ("/wallet/cash-out", "Cash Out"),
             ("/wallet/history", "Report"), ("/payments", "Payment"),
             ("/payments/financial-services", "Financial Services"),
             ("/payments/other-services", "Other Services"),

@@ -4,8 +4,9 @@
 <div class="page-heading"><div><span class="eyebrow">Transfer</span><h1>Send Money</h1><p>Transfer demo wallet balance to another registered wallet account.</p></div><div class="balance-pill">Balance: <strong>৳ {{ '%.2f'|format(current_user.balance) }}</strong></div></div>
 <div class="form-page-grid">
   <section class="section-card form-card">
-    <form method="post" class="form-stack" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="SEND_MONEY">
+    <form method="post" class="form-stack" data-wallet-operation="send-money" data-recipient-lookup="{{ url_for('operations.recipient') }}" data-recipient-kind="SEND_MONEY">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="operation_token" value="{{ operation_token }}">
       <label>Recipient Mobile<input name="recipient_mobile" type="tel" inputmode="tel" placeholder="01XXXXXXXXX" maxlength="20" value="{{ request.form.get('recipient_mobile', request.args.get('recipient_mobile', '')) }}" data-recipient-number aria-describedby="sendRecipientStatus" required></label>
       <p class="recipient-status" id="sendRecipientStatus" data-recipient-status role="status">Enter a number to check its registered name and safety status.</p>
       <label>Amount<input name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" placeholder="500" value="{{ request.form.get('amount', request.args.get('amount', '')) }}" required></label>
@@ -13,6 +14,9 @@
       <button class="btn btn-primary" type="submit">Send Money</button>
     </form>
   </section>
-  <aside class="info-card"><span class="info-icon">🔐</span><h3>Demo Wallet Transfer</h3><p>Use the mobile number of an account created in this app. A successful transfer updates both wallets and records the same reference in both accounts. All funds are demo funds.</p></aside>
+  <aside class="info-card"><span class="info-icon">🔐</span><h3>Demo Wallet Transfer</h3><p>Use the mobile number of an account created in this app. A successful transfer updates both wallets and records the same reference in both accounts. All funds are demo funds.</p>
+    {% set qr_kind = 'SEND_MONEY' %}{% set qr_reference = request.form.get('recipient_mobile', request.args.get('recipient_mobile', '01944000001')) %}{% set qr_amount = request.form.get('amount', request.args.get('amount', '')) %}
+    {% include 'components/qr.html' %}
+  </aside>
 </div>
 {% endblock %}

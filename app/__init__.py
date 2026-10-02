@@ -1,7 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 
 from config import DevelopmentConfig
 from app.container import build_container, get_container
@@ -43,6 +43,21 @@ def create_app(config_object=DevelopmentConfig):
 
     app.extensions["ioc_container"] = build_container(app)
 
+    @app.before_request
+    def restore_display_preferences():
+        from app.domain.preferences import DisplayPreference
+        if session.get("user_id") and ("language" not in session or "theme" not in session):
+            preferences = db.session.get(DisplayPreference, session["user_id"])
+            session.setdefault("language", preferences.language if preferences else "en")
+            session.setdefault("theme", preferences.theme if preferences else "system")
+
+    @app.after_request
+    def localize_html(response):
+        from app.services.localization import translate_html
+        if session.get("language") == "bn" and response.mimetype == "text/html":
+            response.set_data(translate_html(response.get_data(as_text=True)))
+        return response
+
     @app.errorhandler(413)
     def upload_too_large(error):
         return render_template("errors/upload_too_large.html"), 413
@@ -53,11 +68,12 @@ def create_app(config_object=DevelopmentConfig):
         from app.services.navigation_service import notification_summary
         from app.services.preference_service import get_preferences
         from app.services.reporting_service import local_datetime
+        from app.services.localization import translate, BANGLA
 
         user = current_user()
         alerts_enabled = bool(user and get_preferences(user.id).notifications_enabled)
         alerts = notification_summary(user.id) if alerts_enabled else {
-            "items": [], "unread_count": 0, "read_through": 0,
+            "items": [], "unread_count": 0, "read_through": 0, "read_ids": set(),
         }
 
         return {
@@ -68,6 +84,10 @@ def create_app(config_object=DevelopmentConfig):
             "navbar_alerts_enabled": alerts_enabled,
             "ui_local_time": local_datetime,
             "profile_details": get_container().profile.get_details(user.id) if user else None,
+            "ui_language": session.get("language", "en"),
+            "ui_theme": session.get("theme", "system"),
+            "t": lambda text: translate(text, session.get("language", "en")),
+            "ui_translations": BANGLA if session.get("language") == "bn" else {},
         }
 
     with app.app_context():

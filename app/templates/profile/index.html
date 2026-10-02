@@ -5,7 +5,7 @@
 <div class="profile-grid">
   <section class="profile-summary section-card">
     <div class="avatar xl">{% if profile_details.photo_data %}<img src="{{ url_for('profile.photo') }}" alt="Your profile picture" style="width:100%;height:100%;object-fit:cover;border-radius:50%">{% else %}{{ user.full_name[0] }}{% endif %}</div>
-    <h2>{{ profile_details.nickname or user.full_name }}</h2><p>{{ user.full_name }}</p><p>{{ user.mobile }}</p>
+    <h2 data-user-content>{{ profile_details.nickname or user.full_name }}</h2><p data-user-content>{{ user.full_name }}</p>
     <span class="status-badge">{{ '✓ Verified Account' if user.verified else 'Verification pending' }}</span>
     <div class="profile-balance"><small>Wallet Balance</small><strong>{{ currency }} {{ '%.2f'|format(user.balance) }}</strong></div>
     <div class="profile-balance"><small>Member since</small><strong style="font-size:16px">{{ ui_local_time(user.created_at).strftime('%d %b %Y') }}</strong></div>
@@ -20,7 +20,17 @@
       <label>Mobile Number<input value="{{ user.mobile }}" disabled><small class="muted">This number identifies your wallet account.</small></label>
       <label>Email<input type="email" name="email" autocomplete="email" value="{{ request.form.get('email', user.email or '') }}" maxlength="120" placeholder="name@example.com"></label>
       <label>Address<textarea name="address" autocomplete="street-address" maxlength="300" rows="3" placeholder="Street, area, city and postal code">{{ request.form.get('address', profile_details.address or '') }}</textarea></label>
-      <label>Profile picture<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"><small class="muted">JPG, PNG or WebP · Up to 5 MB. Your picture is saved with your profile.</small></label>
+      <label>Profile picture<input type="file" name="photo" accept="image/*,.heic,.heif,.avif,.tif,.tiff,.bmp,.ico,.jp2,.qoi,.psd,.tga,.ppm" data-photo-input><small class="muted">JPG, PNG, WebP, GIF, BMP, TIFF, ICO, AVIF, HEIC, JPEG2000, QOI, PSD, TGA and PPM · Up to 5 MB. Animated images use their first frame.</small></label>
+      <div class="photo-editor" data-photo-editor hidden>
+        <strong>Resize &amp; crop</strong><img class="photo-preview" data-photo-preview alt="Preview">
+        <div class="photo-crop-controls">
+          <label>Photo size<select name="photo_size"><option value="128">128 px</option><option value="256">256 px</option><option value="512" selected>512 px</option><option value="1024">1024 px</option></select></label>
+          <label>Crop mode<select name="photo_fit"><option value="fit">Fit image</option><option value="square">Square crop</option></select></label>
+          <label>Horizontal position<input type="range" name="crop_x" min="0" max="100" value="50"></label>
+          <label>Vertical position<input type="range" name="crop_y" min="0" max="100" value="50"></label>
+        </div>
+        <p class="muted" data-photo-status role="status"></p>
+      </div>
       {% if profile_details.photo_data %}<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" name="remove_photo" style="width:18px;height:18px">Remove current picture</label>{% endif %}
       <button class="btn btn-primary" type="submit">Save Changes</button>
     </form>

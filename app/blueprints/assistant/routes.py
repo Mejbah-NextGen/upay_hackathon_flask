@@ -4,12 +4,17 @@ from collections import defaultdict, deque
 from threading import Lock
 from time import monotonic
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session, url_for
 
 from app.auth_helpers import current_user, login_required
-from app.services.assistant_service import answer_question, provider_enabled
+from app.services.assistant_service import answer_question, clear_conversation, conversation_history, provider_enabled
+from app.services.localization import translate
 
 bp = Blueprint("assistant", __name__, url_prefix="/assistant")
+
+
+def _ui_error(message):
+    return translate(message, session.get("language", "en"))
 
 
 @bp.app_context_processor
@@ -67,23 +72,42 @@ def index():
         try:
             question, history = _validate_payload({"question": question})
             if not _within_rate_limit(current_user().id):
-                error, status = "Please wait a minute before asking more questions.", 429
+                error, status = _ui_error("Please wait a minute before asking more questions."), 429
             else:
                 result = answer_question(current_user(), question, history)
         except ValueError as exc:
-            error, status = str(exc), 400
-    return render_template("assistant/index.html", result=result, question=question, error=error), status
+            error, status = _ui_error(str(exc)), 400
+    return render_template("assistant/index.html", result=result, question=question, error=error, conversation=conversation_history(current_user().id)), status
 
 
 @bp.post("/ask")
 def ask():
     user = current_user()
     if user is None:
-        return jsonify(error="Your session expired. Sign in again to use the assistant."), 401
+        return jsonify(error=_ui_error("Your session expired. Sign in again to use the assistant.")), 401
     try:
         question, history = _validate_payload(request.get_json(silent=True))
     except ValueError as exc:
-        return jsonify(error=str(exc)), 400
+        return jsonify(error=_ui_error(str(exc))), 400
     if not _within_rate_limit(user.id):
-        return jsonify(error="Please wait a minute before asking more questions."), 429, {"Retry-After": "60"}
+        return jsonify(error=_ui_error("Please wait a minute before asking more questions.")), 429, {"Retry-After": "60"}
     return jsonify(answer_question(user, question, history))
+
+
+@bp.get("/history")
+def history():
+    user = current_user()
+    if user is None:
+        return jsonify(error=_ui_error("Your session expired. Sign in again to use the assistant.")), 401
+    return jsonify(messages=conversation_history(user.id)), 200, {"Cache-Control": "private, no-store"}
+
+
+@bp.post("/clear")
+def clear():
+    user = current_user()
+    if user is None:
+        return jsonify(error=_ui_error("Your session expired. Sign in again to use the assistant.")), 401
+    clear_conversation(user.id)
+    if request.is_json:
+        return jsonify(cleared=True)
+    return redirect(url_for("assistant.index"))

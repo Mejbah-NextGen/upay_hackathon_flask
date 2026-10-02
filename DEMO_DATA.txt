@@ -1,0 +1,355 @@
+UPAYX — DEMO DEFAULTS / ডেমো তথ্যের তালিকা
+========================================================================
+Source: code defaults only. This file does not export real user data.
+সব নম্বর, ব্যালেন্স, fraud flag ও provider তালিকা পরীক্ষার জন্য।
+No real bank, card, ATM, SMS, lending or savings integrations are connected.
+
+1. DEFAULT ACCOUNTS AND LOGIN
+------------------------------------------------------------------------
+Main demo wallet: 01329097775
+Name: Md. Mejbahul Islam
+Email: mejbah@example.com
+Demo opening/current seeded balance: BDT 12,450.00
+Verified fixture: true (not live KYC verification)
+Default OTP: 123456 (configurable through DEMO_OTP; this is a demo)
+Recipient wallet: 01944000001 — Demo Recipient Ayesha
+Recipient opening balance when first created: BDT 1,000.00
+
+2. RECEIVER / PROVIDER / FRAUD DIRECTORY
+------------------------------------------------------------------------
+01944000002 | CASH_OUT | Demo Authorized Agent | REGISTERED | any provider
+01944000003 | MOBILE_RECHARGE | Demo Subscriber Rafi | REGISTERED | any operator
+01944000099 | ANY | Demo Flagged Recipient | BLOCKED
+  Reason: Fraud flag supplied only as a demonstration fixture.
+DEMO-METER-1001 | BILL_PAYMENT | DESCO Electricity | Demo Household Electricity | REGISTERED
+DEMO-GAS-1001 | BILL_PAYMENT | Titas Gas | Demo Household Gas | REGISTERED
+DEMO-BLOCKED-1001 | ANY | Demo Flagged Bill Account | BLOCKED
+  Reason: Demonstration blocked account.
+Unlisted recipients are not registered. Send Money requires a local wallet.
+Fraud flags are local fixtures; they are not real-world allegations.
+
+3. OPENING SAMPLE TRANSACTIONS
+------------------------------------------------------------------------
+MOBILE_RECHARGE | OUT | Grameenphone • 017XXXXXXXX | BDT 300.00
+SEND_MONEY | OUT | 018XXXXXXXX | BDT 500.00
+BILL_PAYMENT | OUT | DESCO | BDT 620.00
+ADD_MONEY | IN | Bank Account | BDT 2,000.00
+Reference pattern: DEMO-{first four kind characters}-{user id}
+
+4. GENERATED 120-DAY HISTORY AND FUTURE INSTALLMENTS
+------------------------------------------------------------------------
+One labeled DEMO120-{user id}-{YYYYMMDD} record for each latest BD calendar day.
+Operation rotates by day ordinal through Add/Send/Receive/Cash Out/Recharge/Bill.
+Amount: (day ordinal % 9 + 1) × BDT 50.00. Cash-out fixture fee: 1.5%.
+Bill samples rotate across the categories listed below.
+Reference example: DEMO-ACCOUNT-1001; sender example: Demo Sender Karim.
+History fixtures are imported examples; they never recompute existing balance.
+BD time: UTC+06:00. Older records are retained; startup does not delete them.
+Next calendar month day 5: DESCO / DEMO-METER-1001 / BDT 620 / monthly automatic.
+Second upcoming month day 5: same DESCO installment / BDT 620 / automatic.
+Next month day 12: Grameenphone / 01944000003 / BDT 200 / one-time automatic.
+Second month day 20: 01944000001 / BDT 500 / one-time manual.
+Seed reference: DEMO-SCHEDULE-{user id}-{group}-{YYYYMMDD}.
+Plans move no balance until due and successfully executed.
+
+5. CASH OUT AND TRANSFER DEMO TERMS
+------------------------------------------------------------------------
+Agent cash out fee: 1.500% of principal.
+ATM cash out fee: 1.00% of principal.
+ATM amounts: multiples of BDT 500; maximum BDT 20,000.
+General operation amount: BDT 0.01–100,000 with two decimal places.
+Fee rounding: nearest paisa, ROUND_HALF_UP. Wallet debit = amount + fee.
+NPSB bank transfer fee: BDT 10.00.
+BEFTN (BFTN alias) bank transfer fee: BDT 0.00.
+Visa transfer fee: 1.00%. Demo Visa: 4111111111111111.
+Demo bank account number: 1234567890. Visa numbers are masked in records.
+These are prototype terms, not live provider prices or settlement guarantees.
+
+ATM examples:
+  ATM-DHAKA-01 | Demo ATM — Gulshan, Dhaka
+  ATM-DHAKA-02 | Demo ATM — Banani, Dhaka
+  ATM-DHAKA-03 | Demo ATM — Dhanmondi, Dhaka
+  ATM-DHAKA-04 | Demo ATM — Motijheel, Dhaka
+  ATM-DHAKA-05 | Demo ATM — Mirpur, Dhaka
+  ATM-CTG-01 | Demo ATM — Agrabad, Chattogram
+  ATM-SYLHET-01 | Demo ATM — Zindabazar, Sylhet
+  ATM-RAJSHAHI-01 | Demo ATM — Shaheb Bazar, Rajshahi
+  ATM-KHULNA-01 | Demo ATM — Sonadanga, Khulna
+  ATM-BARISHAL-01 | Demo ATM — Sadar Road, Barishal
+  ATM-RANGPUR-01 | Demo ATM — Jahaj Company, Rangpur
+  ATM-MYMENSINGH-01 | Demo ATM — Ganginarpar, Mymensingh
+
+Bank examples:
+  01. Demo Bank 01 — Dhaka
+  02. Demo Bank 02 — Chattogram
+  03. Demo Bank 03 — Sylhet
+  04. Demo Bank 04 — Rajshahi
+  05. Demo Bank 05 — Khulna
+  06. Demo Bank 06 — Barishal
+  07. Demo Bank 07 — Rangpur
+  08. Demo Bank 08 — Mymensingh
+  09. Demo Bank 09 — Cumilla
+  10. Demo Bank 10 — Gazipur
+  11. Demo Bank 11 — Narayanganj
+  12. Demo Bank 12 — Bogura
+
+6. SAVINGS AND PAY LATER
+------------------------------------------------------------------------
+Savings: fixed monthly amount BDT 0.01–100,000; fixed tenure 1–120 months.
+Demo annual simple return: 10%. Beginning-of-month contributions.
+Principal = monthly amount × months.
+Estimated return = monthly amount × 0.10 × months × (months + 1) / 24.
+Example: BDT 100 monthly × 12 = BDT 1,200 principal + BDT 65 estimate.
+Maximum 10 active saved goals per user; save/archive does not move wallet funds.
+Savings records are estimates only. No savings plans are pre-seeded.
+Pay Later demo limit: BDT 5,000 across all outstanding purchases.
+Tenure: 7, 14 or 30 Bangladesh calendar days. Demo interest and fees: 0%.
+Purchase status DEFERRED: no immediate wallet debit; receipt records the obligation.
+Manual repayment deducts wallet once and releases credit. No automatic late fees.
+No Pay Later purchases or accounts are pre-seeded; account created on first use.
+Pay Later merchant examples:
+  01. Demo Grocery Store
+  02. Demo Pharmacy
+  03. Demo Bookshop
+  04. Demo Electronics
+  05. Demo Clothing Store
+  06. Demo Home Essentials
+  07. Demo Education Supplies
+  08. Demo Travel Booking
+  09. Demo Restaurant
+  10. Demo Internet Subscription
+
+7. MOBILE RECHARGE
+------------------------------------------------------------------------
+Operators: Grameenphone, Robi, Airtel, Banglalink, Teletalk
+Preset amounts (BDT): 20, 30, 50, 100, 150, 200, 300, 500, 750, 1000
+
+8. PAYMENT CATEGORY AND PROVIDER EXAMPLES
+------------------------------------------------------------------------
+Provider names are offline examples. A name does not establish a partnership.
+Education is split into Education, School, College and University categories.
+Gas includes six natural-gas distributors, two LPG brands and two labeled demos.
+Each category contains 10 example options. Validate category/provider on server.
+
+Electricity [electricity] — Customer / Meter Number
+  01. DESCO Electricity
+  02. DPDC Electricity
+  03. Demo Dhaka North Electricity
+  04. Demo Dhaka South Electricity
+  05. Demo Chattogram Electricity
+  06. Demo Rajshahi Electricity
+  07. Demo Khulna Electricity
+  08. Demo Sylhet Electricity
+  09. Demo Rangpur Electricity
+  10. Demo Rural Electricity
+
+Gas [gas] — Customer / Account Number
+  01. Titas Gas
+  02. Karnaphuli Gas
+  03. Bakhrabad Gas
+  04. Jalalabad Gas
+  05. Pashchimanchal Gas
+  06. Sundarban Gas
+  07. Omera LPG
+  08. Bashundhara LP Gas
+  09. Demo Local LPG Refill
+  10. Demo Commercial LPG Supply
+
+Internet [internet] — Subscriber / Customer ID
+  01. Demo Broadband
+  02. Demo Fiber Internet
+  03. Demo Dhaka Internet
+  04. Demo Chattogram Internet
+  05. Demo Rajshahi Internet
+  06. Demo Sylhet Internet
+  07. Demo Khulna Internet
+  08. Demo Rangpur Internet
+  09. Demo Rural Broadband
+  10. Demo Business Internet
+
+Water [water] — Customer / Bill Number
+  01. Demo Water Utility
+  02. Demo Dhaka Water
+  03. Demo Chattogram Water
+  04. Demo Khulna Water
+  05. Demo Rajshahi Water
+  06. Demo Sylhet Water
+  07. Demo Rangpur Water
+  08. Demo Barishal Water
+  09. Demo Cumilla Water
+  10. Demo Mymensingh Water
+
+TV Bill [tv] — Subscriber / Smart Card Number
+  01. Demo Cable TV
+  02. Demo Satellite TV
+  03. Demo Dhaka Cable
+  04. Demo Chattogram Cable
+  05. Demo Khulna Cable
+  06. Demo Sylhet Cable
+  07. Demo Rajshahi Cable
+  08. Demo Digital TV
+  09. Demo Family TV Package
+  10. Demo Premium TV Package
+
+Credit Card [credit-card] — Statement / Payment Reference
+  01. Demo Bank Credit Card
+  02. Demo Classic Card
+  03. Demo Gold Card
+  04. Demo Platinum Card
+  05. Demo Student Card
+  06. Demo Corporate Card
+  07. Demo Travel Card
+  08. Demo Shopping Card
+  09. Demo Rewards Card
+  10. Demo Secured Card
+
+Education [education] — Student / Invoice Number
+  01. Demo School
+  02. Demo College
+  03. Demo University
+  04. Demo School Admission
+  05. Demo School Tuition
+  06. Demo College Admission
+  07. Demo College Tuition
+  08. Demo University Admission
+  09. Demo University Tuition
+  10. Demo Examination Fees
+
+Traffic Fine [traffic-fine] — Fine / Case Reference
+  01. Demo Traffic Authority
+  02. Demo Dhaka Traffic Fine
+  03. Demo Chattogram Traffic Fine
+  04. Demo Rajshahi Traffic Fine
+  05. Demo Khulna Traffic Fine
+  06. Demo Sylhet Traffic Fine
+  07. Demo Rangpur Traffic Fine
+  08. Demo Barishal Traffic Fine
+  09. Demo Highway Traffic Fine
+  10. Demo Vehicle Violation
+
+Toll Payment [toll] — Vehicle / Toll Reference
+  01. Demo Bridge Toll
+  02. Demo Expressway Toll
+  03. Demo River Bridge Toll
+  04. Demo City Expressway Toll
+  05. Demo Highway Toll
+  06. Demo Tunnel Toll
+  07. Demo Truck Toll
+  08. Demo Bus Toll
+  09. Demo Private Car Toll
+  10. Demo Toll Pass Renewal
+
+Government Payment [government] — Application / Challan Number
+  01. Demo Government Fee
+  02. Demo Tax Payment
+  03. Demo Passport Fee
+  04. Demo Birth Registration
+  05. Demo Trade License
+  06. Demo Driving License
+  07. Demo Vehicle Registration
+  08. Demo Land Service Fee
+  09. Demo Application Fee
+  10. Demo Treasury Challan
+
+Insurance [insurance] — Policy / Premium Reference
+  01. Demo Life Insurance
+  02. Demo General Insurance
+  03. Demo Health Insurance
+  04. Demo Motor Insurance
+  05. Demo Home Insurance
+  06. Demo Travel Insurance
+  07. Demo Education Insurance
+  08. Demo Accident Insurance
+  09. Demo Family Insurance
+  10. Demo Business Insurance
+
+Donation [donation] — Donation / Campaign Reference
+  01. Demo Community Fund
+  02. Demo Relief Fund
+  03. Demo Education Fund
+  04. Demo Healthcare Fund
+  05. Demo Food Assistance
+  06. Demo Flood Relief
+  07. Demo Winter Support
+  08. Demo Orphan Support
+  09. Demo Disability Support
+  10. Demo Clean Water Fund
+
+Ticket [ticket] — Booking / Ticket Reference
+  01. Demo Transport Tickets
+  02. Demo Event Tickets
+  03. Demo Bus Booking
+  04. Demo Train Booking
+  05. Demo Ferry Booking
+  06. Demo Flight Booking
+  07. Demo Cinema Booking
+  08. Demo Concert Booking
+  09. Demo Sports Event
+  10. Demo Museum Ticket
+
+Hotel [hotel] — Booking / Invoice Reference
+  01. Demo Hotel Booking
+  02. Demo Dhaka Hotel
+  03. Demo Chattogram Hotel
+  04. Demo Coxs Bazar Hotel
+  05. Demo Sylhet Hotel
+  06. Demo Khulna Hotel
+  07. Demo Rajshahi Hotel
+  08. Demo Rangpur Hotel
+  09. Demo Resort Booking
+  10. Demo Guest House Booking
+
+School [education-school] — Student / Invoice Number
+  01. Demo School
+  02. Demo Dhaka School
+  03. Demo Chattogram School
+  04. Demo Rajshahi School
+  05. Demo Sylhet School
+  06. Demo Khulna School
+  07. Demo Rangpur School
+  08. Demo Barishal School
+  09. Demo Cumilla School
+  10. Demo Mymensingh School
+
+College [education-college] — Student / Invoice Number
+  01. Demo College
+  02. Demo Dhaka College
+  03. Demo Chattogram College
+  04. Demo Rajshahi College
+  05. Demo Sylhet College
+  06. Demo Khulna College
+  07. Demo Rangpur College
+  08. Demo Barishal College
+  09. Demo Cumilla College
+  10. Demo Mymensingh College
+
+University [education-university] — Student / Invoice Number
+  01. Demo University
+  02. Demo Dhaka University
+  03. Demo Chattogram University
+  04. Demo Rajshahi University
+  05. Demo Sylhet University
+  06. Demo Khulna University
+  07. Demo Rangpur University
+  08. Demo Barishal University
+  09. Demo Cumilla University
+  10. Demo Mymensingh University
+
+9. INVOICES, QR, NOTIFICATIONS AND DISPLAY DEFAULTS
+------------------------------------------------------------------------
+Transaction reference: generated UPX... identifier; invoice: INV-{UPX reference}.
+Bill invoice reference: normalized uppercase; unique per user/category/provider.
+Browser submission tokens prevent repeated form payments; reads move no funds.
+QR: signed demo instructions, expires after 15 minutes; does not execute payment.
+Bill/cash QR is owner-only. Money request QR can be scanned by another wallet.
+Notifications enabled by default; individual and mark-all read state persist.
+Default language: English (en). Other option: বাংলা (bn).
+Default theme: System. Other options: Light and Dark.
+Assistant: local scoped guide without an API key; optional configured hosted AI.
+Provider key, live balances and private user data are never exported here.
+
+Sources:
+app/services/demo_seed.py; app/__init__.py; config.py
+app/services/service_catalog.py; app/services/wallet_catalog.py
+app/services/payment_plans_service.py; app/services/qr_service.py
+Regenerate: python scripts/generate_demo_reference.py

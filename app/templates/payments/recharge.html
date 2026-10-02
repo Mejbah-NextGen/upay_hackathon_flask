@@ -14,7 +14,7 @@
     <label>Mobile Number<input name="mobile" value="{{ values.get('mobile', '') }}" type="tel" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" maxlength="24" data-recipient-number aria-describedby="rechargeRecipientStatus" required></label>
     <p class="recipient-status" id="rechargeRecipientStatus" data-recipient-status role="status">Enter a number to check its registered name and safety status.</p>
     <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="100000" step="0.01" inputmode="decimal" placeholder="100.00" required></label>
-    <div class="amount-chips"><button type="button" data-amount="50">৳50</button><button type="button" data-amount="100">৳100</button><button type="button" data-amount="200">৳200</button><button type="button" data-amount="500">৳500</button></div>
+    <div class="amount-chips">{% for amount in amounts %}<button type="button" data-amount="{{ amount }}">৳{{ amount }}</button>{% endfor %}</div>
     <p class="muted">Demo recharge reduces wallet balance and appears in Report. No airtime is delivered.</p>
     <button class="btn btn-primary" type="submit">Recharge with Demo Balance</button>
   </form>

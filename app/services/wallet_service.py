@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+import re
 from uuid import uuid4
 
 from sqlalchemy import update
@@ -9,6 +10,10 @@ from app.repositories.interfaces import TransactionRepository, UserRepository
 from app.services.exceptions import InsufficientBalanceError, ValidationError
 from app.services.validation import normalize_mobile
 from app.services.recipient_service import assert_not_blocked
+from app.services.wallet_catalog import (
+    ATM_INCREMENT, ATM_LIMIT, BANK_TRANSFER_FEES, CASH_OUT_RATES,
+    DEMO_ATMS, DEMO_BANKS, VISA_TRANSFER_RATE,
+)
 
 
 class WalletService:
@@ -132,33 +137,138 @@ class WalletService:
         self._finish(commit)
         return tx
 
-    def cash_out(self, user_id: int, agent_number: str, amount_raw, *, commit=True):
+    @staticmethod
+    def _cash_out_channel(channel):
+        channel = str(channel or "AGENT").strip().upper()
+        if channel not in CASH_OUT_RATES:
+            raise ValidationError("Choose Agent or ATM cash-out.")
+        return channel
+
+    @staticmethod
+    def _transfer_rail(rail):
+        rail = str(rail or "").strip().upper()
+        # BFTN is the alternate spelling used on some demo screens.
+        if rail == "BFTN":
+            rail = "BEFTN"
+        if rail not in BANK_TRANSFER_FEES:
+            raise ValidationError("Choose NPSB or BEFTN (BFTN).")
+        return rail
+
+    def quote(self, user_id, operation, amount_raw, *, channel="AGENT", rail="NPSB"):
         user = self.get_user(user_id)
-        agent_number = normalize_mobile(agent_number)
-        assert_not_blocked(agent_number)
         amount = self.parse_amount(amount_raw)
-        fee = (amount * Decimal("0.015")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if operation == "cash-out":
+            channel = self._cash_out_channel(channel)
+            if channel == "ATM" and (amount > ATM_LIMIT or amount % ATM_INCREMENT):
+                raise ValidationError("Demo ATM withdrawals must be multiples of ৳500, up to ৳20,000.")
+            fee = (amount * CASH_OUT_RATES[channel]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        elif operation == "transfer-money":
+            channel = str(channel or "BANK").strip().upper()
+            if channel == "BANK":
+                fee = BANK_TRANSFER_FEES[self._transfer_rail(rail)]
+            elif channel == "VISA":
+                fee = (amount * VISA_TRANSFER_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            else:
+                raise ValidationError("Choose Bank Account or Visa Card.")
+        else:
+            raise ValidationError("Choose a supported wallet operation.")
         total = amount + fee
-        if Decimal(user.balance) < total:
+        balance = Decimal(user.balance)
+        return {"amount": amount, "fee": fee, "total": total, "balance": balance,
+                "remaining": balance - total, "can_submit": balance >= total}
+
+    def cash_out(self, user_id: int, agent_number: str, amount_raw, *, channel="AGENT", atm_location="", commit=True):
+        user = self.get_user(user_id)
+        channel = self._cash_out_channel(channel)
+        if channel == "AGENT":
+            counterparty = normalize_mobile(agent_number)
+            assert_not_blocked(counterparty)
+            note = "Demo Agent cash-out. No physical cash is dispensed."
+        else:
+            if atm_location not in DEMO_ATMS:
+                raise ValidationError("Choose a listed demo ATM location.")
+            counterparty = DEMO_ATMS[atm_location]
+            note = f"Demo ATM cash-out: {atm_location}. No physical cash is dispensed."
+        quote = self.quote(user_id, "cash-out", amount_raw, channel=channel)
+        if not quote["can_submit"]:
             raise InsufficientBalanceError("Insufficient balance including cash-out fee.")
-        self._debit(user.id, total, "Insufficient balance including cash-out fee.")
+        self._debit(user.id, quote["total"], "Insufficient balance including cash-out fee.")
         tx = Transaction(
             user_id=user.id,
             kind="CASH_OUT",
             direction="OUT",
-            title="Cash Out",
-            counterparty=agent_number,
+            title=f"Cash Out ({channel.title() if channel == 'AGENT' else 'ATM'})",
+            counterparty=counterparty,
             reference=self._reference(),
-            amount=amount,
-            fee=fee,
+            amount=quote["amount"],
+            fee=quote["fee"],
+            note=note,
         )
         db.session.add(tx)
         self._finish(commit)
         return tx
 
-    def debit_for_payment(self, user_id: int, *, kind: str, title: str, counterparty: str, amount_raw, commit=True):
+    @staticmethod
+    def _visa_number(value):
+        number = re.sub(r"[ -]", "", str(value or ""))
+        if not re.fullmatch(r"4[0-9]{15}", number):
+            raise ValidationError("Enter a 16-digit demo Visa card number beginning with 4.")
+        checksum = 0
+        for index, digit in enumerate(number):
+            value = int(digit)
+            if index % 2 == 0:
+                value *= 2
+                if value > 9:
+                    value -= 9
+            checksum += value
+        if checksum % 10:
+            raise ValidationError("The demo Visa card number did not pass its checksum.")
+        return number
+
+    def transfer_money(self, user_id, channel, amount_raw, *, bank="", account_number="", card_number="", holder_name="", rail="NPSB", note="", commit=True):
+        user = self.get_user(user_id)
+        channel = str(channel or "").strip().upper()
+        holder_name = str(holder_name or "").strip()
+        if not 2 <= len(holder_name) <= 120 or any(ord(character) < 32 for character in holder_name):
+            raise ValidationError("Enter the destination account or card holder name (2–120 characters).")
+        note = str(note or "").strip()
+        if len(note) > 100:
+            raise ValidationError("Transfer note must be 100 characters or fewer.")
+        if channel == "BANK":
+            if bank not in DEMO_BANKS:
+                raise ValidationError("Choose a listed demo bank.")
+            account_number = str(account_number or "").strip()
+            if not re.fullmatch(r"[0-9]{6,20}", account_number):
+                raise ValidationError("Enter a demo bank account number with 6–20 digits.")
+            assert_not_blocked(account_number)
+            rail = self._transfer_rail(rail)
+            destination = f"{bank} • account ending {account_number[-4:]}"
+            title, kind = f"Bank Transfer ({rail})", "BANK_TRANSFER"
+        elif channel == "VISA":
+            number = self._visa_number(card_number)
+            destination = f"Demo Visa • card ending {number[-4:]}"
+            rail = "VISA"
+            title, kind = "Visa Card Transfer", "VISA_TRANSFER"
+        else:
+            raise ValidationError("Choose Bank Account or Visa Card.")
+        quote = self.quote(user_id, "transfer-money", amount_raw, channel=channel, rail=rail)
+        if not quote["can_submit"]:
+            raise InsufficientBalanceError("Insufficient balance including transfer fee.")
+        self._debit(user.id, quote["total"], "Insufficient balance including transfer fee.")
+        transaction = Transaction(
+            user_id=user.id, kind=kind, direction="OUT", title=title,
+            counterparty=destination, reference=self._reference(), amount=quote["amount"],
+            fee=quote["fee"], note=f"Demo {rail}; holder: {holder_name}; {note}".rstrip("; "),
+        )
+        db.session.add(transaction)
+        self._finish(commit)
+        return transaction
+
+    def debit_for_payment(self, user_id: int, *, kind: str, title: str, counterparty: str, amount_raw, note=None, commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)
+        if note and len(str(note)) > 255:
+            raise ValidationError("Payment note must be 255 characters or fewer.")
         if Decimal(user.balance) < amount:
             raise InsufficientBalanceError("Insufficient balance.")
         self._debit(user.id, amount)
@@ -170,6 +280,7 @@ class WalletService:
             counterparty=counterparty,
             reference=self._reference(),
             amount=amount,
+            note=note,
         )
         db.session.add(tx)
         self._finish(commit)

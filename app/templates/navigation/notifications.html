@@ -7,11 +7,11 @@
 {% if not alerts_enabled %}<div class="flash info">Navbar transaction alerts are turned off. Your activity is still available here. <a class="inline-link" href="{{ url_for('profile.settings') }}">Manage settings</a></div>{% endif %}
 <section class="section-card">
   {% if transaction_page.items %}<div class="notification-list notification-page-list">
-    {% for tx in transaction_page.items %}<article class="notification-item {% if tx.id > alerts.read_through %}unread{% endif %}">
-      <span class="notification-dot" aria-label="{{ 'Unread' if tx.id > alerts.read_through else 'Read' }}"></span>
+    {% for tx in transaction_page.items %}<form method="post" action="{{ url_for('navigation.open_notification', transaction_id=tx.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="notification-item {% if tx.id > alerts.read_through and tx.id not in alerts.read_ids %}unread{% endif %}" aria-label="{{ t('Open details') }}: {{ tx.title }}">
+      <span class="notification-dot" aria-label="{{ 'Unread' if tx.id > alerts.read_through and tx.id not in alerts.read_ids else 'Read' }}"></span>
       <div><strong>{{ tx.title }} &middot; {{ tx.status|replace('_', ' ')|title }}</strong><small>{{ tx.counterparty or 'Wallet transaction' }}{% if tx.reference %} &middot; {{ tx.reference }}{% endif %}</small><small>{{ ui_local_time(tx.created_at).strftime('%d %b %Y, %H:%M') }}{% if tx.fee %} &middot; Fee: {{ currency }}{{ '%.2f'|format(tx.fee) }}{% endif %}</small></div>
       <span class="tx-amount {{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</span>
-    </article>{% endfor %}
+    </button></form>{% endfor %}
   </div>{% else %}<p class="muted">No transactions yet. Your wallet activity will appear here.</p>{% endif %}
   {% if transaction_page.pages > 1 %}<nav class="pagination" aria-label="Notification pages">{% if transaction_page.has_prev %}<a class="btn btn-soft" href="{{ url_for('navigation.notifications', page=transaction_page.prev_num) }}">Previous</a>{% endif %}<span>Page {{ transaction_page.page }} of {{ transaction_page.pages }}</span>{% if transaction_page.has_next %}<a class="btn btn-soft" href="{{ url_for('navigation.notifications', page=transaction_page.next_num) }}">Next</a>{% endif %}</nav>{% endif %}
 </section>

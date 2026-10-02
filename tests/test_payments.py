@@ -155,7 +155,8 @@ class PaymentTests(AppTestCase):
         self.assertIn(self.user.mobile, html)
         self.assertIn("Note: Lunch", html)
         with self.client.session_transaction() as session:
-            self.assertEqual("01712345678", session["prepared_money_request"]["recipient_mobile"])
+            self.assertNotIn("prepared_money_request", session)
+        self.assertNotIn("requests BDT 125.50", self.client.get("/payments/request-money").get_data(as_text=True))
         self.assert_wallet_unchanged()
         self.assertEqual(400, self.client.post("/payments/request-money", data={"recipient_mobile": self.user.mobile, "amount": "100"}).status_code)
         self.assert_wallet_unchanged()

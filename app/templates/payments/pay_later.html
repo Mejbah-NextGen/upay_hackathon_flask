@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Pay Later · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Financial Services</span><h1>Pay Later</h1><p>Record a deferred demo purchase, choose a due date and repay from your wallet.</p></div></div>
+<section class="stats-grid" aria-label="Pay Later balance">
+  <article class="stat-card"><span>Demo Limit</span><strong>৳ {{ '%.2f'|format(summary.limit) }}</strong></article>
+  <article class="stat-card"><span>Available</span><strong>৳ {{ '%.2f'|format(summary.available) }}</strong></article>
+  <article class="stat-card"><span>Outstanding</span><strong>৳ {{ '%.2f'|format(summary.outstanding) }}</strong></article>
+  <article class="stat-card"><span>Overdue</span><strong>৳ {{ '%.2f'|format(summary.overdue) }}</strong></article>
+</section>
+<section class="section-card form-card narrow-card">
+  <div class="section-head"><h2>New Deferred Purchase</h2></div>
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Demo Merchant<select name="merchant" required><option value="">Choose a merchant</option>{% for merchant in merchants %}<option value="{{ merchant }}" {% if values.get('merchant') == merchant %}selected{% endif %}>{{ merchant }}</option>{% endfor %}</select></label>
+    <label>Merchant Invoice Reference<input name="invoice_no" value="{{ values.get('invoice_no', '') }}" minlength="2" maxlength="60" placeholder="SHOP-2026-001" required></label>
+    <label>Amount (BDT)<input name="amount" value="{{ values.get('amount', '') }}" type="number" min="0.01" max="5000" step="0.01" inputmode="decimal" required></label>
+    <label>Repayment Tenure<select name="tenure" required>{% for days in tenures %}<option value="{{ days }}" {% if values.get('tenure') == days|string %}selected{% endif %}>{{ days }} days</option>{% endfor %}</select></label>
+    <p class="muted">Local demo only. No lender approval or merchant payment occurs. Your balance stays unchanged until repayment. Demo interest and fees are 0%; no automatic repayment or late fee is charged. Your total outstanding purchases cannot exceed BDT 5,000.</p>
+    <button class="btn btn-primary" name="action" value="purchase">Record Demo Purchase</button>
+  </form>
+</section>
+<section class="section-card">
+  <div class="section-head"><h2>Purchases and Repayments</h2></div>
+  {% if summary.purchases %}<div class="table-wrap"><table class="transaction-table"><thead><tr><th>Merchant / Invoice</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Receipt / Action</th></tr></thead><tbody>
+  {% for purchase in summary.purchases %}<tr><td><strong>{{ purchase.merchant }}</strong><br>{{ purchase.invoice_no }}</td><td>৳ {{ '%.2f'|format(purchase.amount) }}</td><td>{{ purchase.due_on.strftime('%d %b %Y') }}</td><td><span class="status-badge {{ 'status-success' if purchase.status == 'REPAID' else 'status-other' }}">{{ 'Overdue' if purchase.status == 'PENDING' and purchase.due_on < summary.today else purchase.status|title }}</span></td><td><a href="{{ url_for('wallet.receipt', transaction_id=purchase.purchase_transaction_id) }}">Purchase receipt</a>{% if purchase.status == 'PENDING' %}<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="purchase_id" value="{{ purchase.id }}"><button class="btn btn-primary" name="action" value="repay">Repay from Wallet</button></form>{% elif purchase.repayment_transaction_id %}<br><a href="{{ url_for('wallet.receipt', transaction_id=purchase.repayment_transaction_id) }}">Repayment receipt</a>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="muted">No deferred purchases yet.</p>{% endif %}
+</section>
+{% endblock %}

@@ -10,7 +10,9 @@ A responsive **desktop + mobile wallet web app** inspired by the supplied UI ref
 - Dashboard filters for any 1–120 Bangladesh calendar days
 - Send Money
 - Add Money
-- Cash Out with demo fee calculation
+- Cash Out through Agent or ATM, with exact fees, total debit and remaining balance previews
+- Separate bank/Visa Transfer Money, with NPSB and BEFTN (BFTN alias) methods
+- Bangla/English language and Light/Dark/System theme controls in the navbar
 - Mobile Recharge
 - Bill Payment
 - Separate payments, financial services and other services hubs
@@ -25,7 +27,10 @@ A responsive **desktop + mobile wallet web app** inspired by the supplied UI ref
 - One-time plans and monthly Auto Pay for the next two calendar months
 - App assistant beside Notifications, with optional OpenAI integration
 - Saved notification preferences
-- Savings contribution calculator and money request message preparation
+- Saved fixed-contribution savings plans with tenure and a prorated demo 10% annual estimate
+- Pay Later with a demo credit limit, due dates and idempotent wallet repayment
+- Signed QR instructions with browser-independent image decoding and shareable money requests
+- Bar, cumulative, pie and cumulative histogram report visualizations using the same filters
 - Persisted, labeled 120-day demo transaction history and upcoming demo installments
 - SQLite database
 - CSRF protection
@@ -101,7 +106,7 @@ python run.py
 
 Open: `http://127.0.0.1:5000`
 
-The new dependencies are ReportLab, OpenPyXL, Pillow, PyMuPDF and HarfBuzz. Run `pip install -r requirements.txt` when upgrading an existing installation. The project database creates the new profile, recipient and scheduled-payment tables automatically; existing accounts, balances and transaction records are retained.
+Dependencies include ReportLab, OpenPyXL, Pillow, PyMuPDF, HarfBuzz, pillow-heif and zxing-cpp. Run `pip install -r requirements.txt` when upgrading an existing installation, then restart the app. New tables are created automatically; existing accounts, balances and transaction records are retained. No database reset is needed.
 
 ## Reports and receipts
 
@@ -143,7 +148,7 @@ For one pass, omit `--watch`. The page's **Process Due Auto Pay** button uses th
 
 ## Profile and app assistant
 
-Profile groups your account overview and editable full name, nickname, email, address and picture. JPG, PNG and WebP pictures up to 5 MB are validated, resized, stripped of metadata and stored in a dedicated database table. Uploaded pictures are served only to their owner.
+Profile groups your account overview and editable full name, nickname, email, address and picture. Upload JPG, PNG, WebP, GIF, BMP, TIFF, ICO, AVIF, HEIC/HEIF, JPEG2000, QOI, PSD, TGA or PPM up to 5 MB and 16 megapixels. Choose an output size of 128, 256, 512 or 1024 pixels, fit the full picture or crop a square with horizontal/vertical positioning. The server validates and resizes the picture, uses the first animation frame, corrects EXIF orientation, strips metadata and stores a private JPEG. Some browsers cannot preview HEIC; server decoding still works after installing requirements. SVG and camera RAW formats are not supported.
 
 The assistant beside Notifications explains services, reports, recipient checks, fees and Auto Pay, and summarizes the signed-in user's balance and spending. A local app guide works without a key. To enable the hosted AI, copy `.env.example` to `.env`, set `OPENAI_API_KEY` and optionally `ASSISTANT_MODEL`, then restart. It uses the [OpenAI Responses API](https://developers.openai.com/api/docs/guides/text) with `store: false`. Questions, bounded chat history and account aggregates are sent to OpenAI; profile fields, recipient names, account numbers and transaction notes are excluded from the account snapshot. The assistant never executes payments. A provider failure falls back to the local guide.
 
@@ -160,9 +165,17 @@ The dashboard starts with today's activity. Choose any number of days from 1 to 
 
 Each bill link opens its selected category. Gas bills list gas companies, electricity bills list electricity providers, and recharge lists mobile operators. Changing the category updates the provider choices and reference label. Without JavaScript, the Update Category button loads the matching providers without moving any money. Provider names are demo examples; payments only update the local wallet and history.
 
-Navbar search accepts service names, bill types, providers and transaction references. Search and notifications only show the signed-in user's transactions. Notifications have a persistent Mark All as Read action; their display can be disabled and re-enabled under Profile → Settings.
+Navbar search accepts service names, bill types, providers and transaction references. Search and notifications only show the signed-in user's transactions. Opening a notification marks only that alert read and opens its receipt; Mark All as Read handles the remaining alerts. Language appears after Notifications and before the single Profile link. The phone number appears beside Profile. Display preferences persist across login sessions. Notification display can be disabled under Profile → Settings.
 
-Send Money requires another account registered in this app and records matching debit/credit references in both wallets. Create a second demo account to test transfers. Add Money records its selected mock source. Cash Out charges 1.5%, rounded to the nearest paisa with halves rounded up, and validates the balance including the fee. Savings calculates contributions without moving funds. Request Money prepares a message for you to copy and share; it does not automatically send a request.
+Send Money requires another registered account and records matching debit/credit references in both wallets. Transfer Money has separate bank NPSB/BEFTN and Visa destinations; all rails are offline demonstrations. Add Money records its mock source. Agent Cash Out charges 1.5%; ATM charges 1%, accepts multiples of BDT 500 up to BDT 20,000, and lists 12 demo locations. Fees round to the nearest paisa with halves rounded up; total deduction and remaining balance include the fee. Wallet forms and bill invoices protect repeated submissions from duplicate debits.
+
+Savings saves a fixed contribution and 1–120 month tenure, without moving funds. Its demo annual simple return is 10%, prorated across beginning-of-month installments: `monthly × 0.10 × months × (months + 1) / 24`. Pay Later records deferred purchases against a BDT 5,000 demo limit with 7/14/30 day repayment dates and zero demo fees/interest; only repayment deducts balance. Request Money prepares a one-view message and a shareable signed QR, with a clear action.
+
+The 17 bill categories each offer 10 example providers; School, College and University are separate options. Bill invoices retain the account, provider invoice, generated invoice number and transaction ID, including PDF/JPG receipts. Four report charts use exactly the displayed filters, exclude unsuccessful records and include outgoing fees. Cumulative net change starts at zero and does not represent the current balance.
+
+QR codes expire in 15 minutes and only prepare forms. Bill/cash instructions are scoped to their creator; money-request codes can fill another wallet's Send Money form. Image reading falls back to the local server when a browser has no BarcodeDetector. The assistant uses a bounded server-owned conversation, provides focused actions, and answers only about the app and the authenticated account. Clear Chat clears both the visible chat and stored conversation.
+
+All code defaults, demo recipients and fraud flags, bank/ATM examples, fees, savings/credit terms and provider choices are documented in [DEMO_DATA.txt](DEMO_DATA.txt). Regenerate with `python scripts/generate_demo_reference.py`; the generator never reads the account database or environment secrets.
 
 Existing accounts and transaction history are retained. The app creates the new notification and preference tables automatically on startup; a database reset is not required.
 
@@ -174,11 +187,16 @@ Run the isolated regression suite:
 pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 node --check app/static/js/app.js
+node --check app/static/js/ui.js
+node --check app/static/js/wallet.js
+node --check app/static/js/reports.js
 ```
 
 Tests use in-memory SQLite databases and do not change `instance/upay_hackathon.db`. They cover provider/category validation, date boundaries, user isolation, transaction totals, transfers, fees, search, notifications, preferences, authentication, CSRF protection, profile upload validation, recipient blocking, due-only scheduled payments, report formats, PDF pagination, Excel formulas/cached totals and assistant privacy. The development dependencies include PDF parsing and rendering tools for export QA.
 
 Generate isolated sample exports and page images for visual review:
+
+For automated desktop/tablet/mobile layout and interaction checks, run `python -m tests.browser_qa`. It uses an isolated in-memory database and headless Chrome (install Chrome first), checks English and Bangla at 320, 375, 768, 1024 and 1440 pixels, and saves screenshots/results under `tmp/browser-qa`.
 
 ```powershell
 python -m tests.export_preview

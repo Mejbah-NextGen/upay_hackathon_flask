@@ -19,6 +19,8 @@ def index():
                 session["user_id"], request.form.get("full_name", ""), request.form.get("email", ""),
                 nickname=request.form.get("nickname", ""), address=request.form.get("address", ""),
                 photo=request.files.get("photo"), remove_photo=request.form.get("remove_photo") == "on",
+                photo_size=request.form.get("photo_size", "512"), photo_fit=request.form.get("photo_fit", "fit"),
+                crop_x=request.form.get("crop_x", "50"), crop_y=request.form.get("crop_y", "50"),
             )
             flash("Profile updated.", "success")
             return redirect(url_for("profile.index"))

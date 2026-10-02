@@ -1,12 +1,20 @@
 from datetime import date
+import hashlib
+import hmac
 from io import BytesIO
+import json
+import re
+from uuid import uuid4
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, session, url_for
+from sqlalchemy.exc import IntegrityError
 
 from app.auth_helpers import login_required
 from app.container import get_container
 from app.domain.models import Transaction
 from app.domain.operations import ScheduledPayment
+from app.domain.wallet_submissions import WalletSubmission
+from app.extensions import db
 from app.services.exceptions import InsufficientBalanceError, ValidationError
 from app.services.export_service import (
     receipt_jpg, receipt_pdf, receipt_summary, report_pdf, report_xlsx,
@@ -14,33 +22,70 @@ from app.services.export_service import (
 )
 from app.services.reporting_service import (
     filter_schedules, filter_transactions, local_datetime, parse_days, period_dates,
-    schedule_totals, transaction_totals, wallet_change,
+    report_visualization, schedule_totals, transaction_totals, wallet_change,
 )
+from app.services.wallet_catalog import DEMO_ATMS, DEMO_BANKS
 
 bp = Blueprint("wallet", __name__, url_prefix="/wallet")
 
 
-def _handle(action, success_message, template_name):
+def _handle(action, success_message, template_name, **context):
+    token = request.form.get("operation_token", "")
     try:
+        submission = None
+        if token:
+            if not re.fullmatch(r"[a-f0-9]{32}", token):
+                raise ValidationError("Refresh this form before submitting again.")
+            fields = {key: request.form.getlist(key) for key in request.form if key not in {"csrf_token", "operation_token"}}
+            payload = json.dumps([request.endpoint, fields], sort_keys=True, ensure_ascii=False).encode("utf-8")
+            fingerprint = hmac.new(str(current_app.config["SECRET_KEY"]).encode("utf-8"), payload, hashlib.sha256).hexdigest()
+            existing = WalletSubmission.query.filter_by(user_id=session["user_id"], token=token).first()
+            if existing:
+                return _repeat_submission(existing, fingerprint)
+            submission = WalletSubmission(user_id=session["user_id"], token=token, fingerprint=fingerprint)
+            db.session.add(submission)
+            try:
+                db.session.flush()
+            except IntegrityError:
+                # A concurrent identical request may have committed while this
+                # request waited for the unique claim. It owns the same receipt.
+                db.session.rollback()
+                existing = WalletSubmission.query.filter_by(user_id=session["user_id"], token=token).first()
+                if existing is None:
+                    raise ValidationError("Refresh this form before submitting again.")
+                return _repeat_submission(existing, fingerprint)
         transaction = action()
+        if submission is not None:
+            submission.transaction_id = transaction.id
+        db.session.commit()
         flash(success_message, "success")
         return redirect(url_for("wallet.receipt", transaction_id=transaction.id))
     except (ValidationError, InsufficientBalanceError) as exc:
+        db.session.rollback()
         flash(str(exc), "danger")
-        return render_template(template_name), 400
+        context["operation_token"] = token if re.fullmatch(r"[a-f0-9]{32}", token) else uuid4().hex
+        return render_template(template_name, **context), 400
+
+
+def _repeat_submission(submission, fingerprint):
+    if not hmac.compare_digest(submission.fingerprint, fingerprint) or submission.transaction_id is None:
+        raise ValidationError("This form was already submitted. Open a new form to change the details.")
+    flash("This transaction was already completed. Showing the original receipt.", "success")
+    return redirect(url_for("wallet.receipt", transaction_id=submission.transaction_id))
 
 
 @bp.route("/send-money", methods=["GET", "POST"])
 @login_required
 def send_money():
     if request.method == "GET":
-        return render_template("wallet/send_money.html")
+        return render_template("wallet/send_money.html", operation_token=uuid4().hex)
     return _handle(
         lambda: get_container().wallet.send_money(
             session["user_id"],
             request.form.get("recipient_mobile", ""),
             request.form.get("amount", ""),
             request.form.get("note", ""),
+            commit=False,
         ),
         "Money sent successfully.",
         "wallet/send_money.html",
@@ -51,10 +96,10 @@ def send_money():
 @login_required
 def add_money():
     if request.method == "GET":
-        return render_template("wallet/add_money.html")
+        return render_template("wallet/add_money.html", operation_token=uuid4().hex)
     return _handle(
         lambda: get_container().wallet.add_money(
-            session["user_id"], request.form.get("source", ""), request.form.get("amount", "")
+            session["user_id"], request.form.get("source", ""), request.form.get("amount", ""), commit=False,
         ),
         "Money added successfully.",
         "wallet/add_money.html",
@@ -64,15 +109,55 @@ def add_money():
 @bp.route("/cash-out", methods=["GET", "POST"])
 @login_required
 def cash_out():
+    channel = str(request.form.get("channel", request.args.get("channel", "AGENT"))).upper()
+    context = {"channel": channel if channel in {"AGENT", "ATM"} else "AGENT", "atm_locations": DEMO_ATMS, "operation_token": uuid4().hex}
     if request.method == "GET":
-        return render_template("wallet/cash_out.html")
+        return render_template("wallet/cash_out.html", **context)
     return _handle(
         lambda: get_container().wallet.cash_out(
-            session["user_id"], request.form.get("agent_number", ""), request.form.get("amount", "")
+            session["user_id"], request.form.get("agent_number", ""), request.form.get("amount", ""),
+            channel=channel, atm_location=request.form.get("atm_location", ""),
+            commit=False,
         ),
         "Cash-out completed successfully.",
         "wallet/cash_out.html",
+        **context,
     )
+
+
+@bp.route("/transfer-money", methods=["GET", "POST"])
+@login_required
+def transfer_money():
+    channel = str(request.form.get("channel", request.args.get("channel", "BANK"))).upper()
+    context = {"channel": channel if channel in {"BANK", "VISA"} else "BANK", "banks": DEMO_BANKS, "operation_token": uuid4().hex}
+    if request.method == "GET":
+        return render_template("wallet/transfer_money.html", **context)
+    return _handle(
+        lambda: get_container().wallet.transfer_money(
+            session["user_id"], channel, request.form.get("amount", ""),
+            bank=request.form.get("bank", ""), account_number=request.form.get("account_number", ""),
+            card_number=request.form.get("card_number", ""), holder_name=request.form.get("holder_name", ""),
+            rail=request.form.get("rail", "NPSB"), note=request.form.get("note", ""),
+            commit=False,
+        ),
+        "Demo transfer recorded. No funds were sent to an external bank or card.",
+        "wallet/transfer_money.html", **context,
+    )
+
+
+@bp.get("/quote")
+@login_required
+def quote():
+    try:
+        result = get_container().wallet.quote(
+            session["user_id"], request.args.get("operation", ""), request.args.get("amount", ""),
+            channel=request.args.get("channel", "AGENT"), rail=request.args.get("rail", "NPSB"),
+        )
+    except ValidationError as exc:
+        return jsonify(error=str(exc)), 400
+    response = jsonify({key: value if isinstance(value, bool) else str(value) for key, value in result.items()})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @bp.get("/history")
@@ -110,7 +195,7 @@ def _report_context():
         kind = ""
     query = request.args.get("q", "").strip()[:100]
     status = request.args.get("status", "")
-    if status not in {"SUCCESS", "PENDING", "FAILED", "CANCELLED", "SCHEDULED", "COMPLETED"}:
+    if status not in {"SUCCESS", "PENDING", "FAILED", "CANCELLED", "SCHEDULED", "COMPLETED", "DEFERRED"}:
         status = ""
     scope = request.args.get("scope", "all")
     if scope not in {"all", "transactions", "scheduled"}:
@@ -135,6 +220,7 @@ def _report_context():
         direction=direction, kind=kind, kinds=kinds, query=query, dates=dates, status=status,
         start_date=start_date, end_date=end_date, scope=scope, export_args=export_args,
         local_time=local_datetime, wallet_change=wallet_change, filter_description=filter_description,
+        analytics=report_visualization(txs),
     )
 
 
@@ -170,7 +256,9 @@ def _owned_transaction(transaction_id):
 @login_required
 def receipt(transaction_id):
     transaction = _owned_transaction(transaction_id)
-    return render_template("wallet/receipt.html", tx=transaction, summary=receipt_summary(transaction), wallet_change=wallet_change(transaction), local_time=local_datetime)
+    from app.domain.payment_plans import PaymentInvoice
+    invoice = PaymentInvoice.query.filter_by(transaction_id=transaction.id, user_id=session["user_id"]).first()
+    return render_template("wallet/receipt.html", tx=transaction, summary=receipt_summary(transaction), wallet_change=wallet_change(transaction), local_time=local_datetime, payment_invoice=invoice)
 
 
 @bp.get("/transaction/<int:transaction_id>/download")

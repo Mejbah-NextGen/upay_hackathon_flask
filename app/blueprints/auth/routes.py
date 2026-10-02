@@ -59,8 +59,18 @@ def otp():
             session.pop("auth_flow", None)
             flash("Account not found. Please sign in again.", "warning")
             return redirect(url_for("auth.login"))
+        display = {key: session[key] for key in ("language", "theme") if key in session}
         session.clear()
         session["user_id"] = user.id
+        session.update(display)
+        if display:
+            from app.domain.preferences import DisplayPreference
+            from app.extensions import db
+            preference = db.session.get(DisplayPreference, user.id) or DisplayPreference(user_id=user.id)
+            for key, value in display.items():
+                setattr(preference, key, value)
+            db.session.add(preference)
+            db.session.commit()
         flash("Welcome back!", "success")
         return redirect(url_for("dashboard.index"))
     except AuthenticationError as exc:
@@ -70,6 +80,8 @@ def otp():
 
 @bp.post("/logout")
 def logout():
+    display = {key: session[key] for key in ("language", "theme") if key in session}
     session.clear()
+    session.update(display)
     flash("Signed out successfully.", "info")
     return redirect(url_for("auth.login"))

@@ -1,7 +1,14 @@
 from io import BytesIO
+import math
 import warnings
 
 from PIL import Image, ImageOps, UnidentifiedImageError
+
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener(thumbnails=False)
+except ImportError:
+    pass  # Other formats remain usable before requirements are upgraded.
 
 from app.domain.profiles import UserProfile
 from app.extensions import db
@@ -20,7 +27,7 @@ class ProfileService:
         )
 
     @staticmethod
-    def _prepare_photo(upload):
+    def _prepare_photo(upload, size=512, fit="fit", crop_x=50, crop_y=50):
         raw = upload.read(5 * 1024 * 1024 + 1)
         if len(raw) > 5 * 1024 * 1024:
             raise ValidationError("Choose a profile picture under 5 MB.")
@@ -28,13 +35,18 @@ class ProfileService:
             with warnings.catch_warnings():
                 warnings.simplefilter("error", Image.DecompressionBombWarning)
                 with Image.open(BytesIO(raw)) as image:
-                    if image.format not in {"JPEG", "PNG", "WEBP"}:
-                        raise ValidationError("Choose a JPG, PNG or WebP profile picture.")
+                    if image.format not in {"JPEG", "PNG", "WEBP", "GIF", "BMP", "TIFF", "ICO", "AVIF", "HEIF", "JPEG2000", "PPM", "TGA", "QOI", "PSD"}:
+                        raise ValidationError("Choose a supported raster image: JPG, PNG, WebP, GIF, BMP, TIFF, ICO, AVIF or HEIC.")
                     if image.width * image.height > 16_000_000:
                         raise ValidationError("Choose a profile picture smaller than 16 megapixels.")
                     image.load()
                     image = ImageOps.exif_transpose(image)
-                    image.thumbnail((512, 512))
+                    if fit == "square":
+                        side = min(image.size)
+                        left = round((image.width - side) * crop_x / 100)
+                        top = round((image.height - side) * crop_y / 100)
+                        image = image.crop((left, top, left + side, top + side))
+                    image.thumbnail((size, size), Image.Resampling.LANCZOS)
                     if image.mode in {"RGBA", "LA"} or "transparency" in image.info:
                         rgba = image.convert("RGBA")
                         background = Image.new("RGB", rgba.size, "white")
@@ -47,10 +59,11 @@ class ProfileService:
                     return photo.getvalue()
         except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError,
                 Image.DecompressionBombWarning):
-            raise ValidationError("Upload a valid JPG, PNG or WebP picture.")
+            raise ValidationError("Upload a valid supported image. HEIC needs the pillow-heif package from requirements.txt.")
 
     def update_profile(self, user_id: int, full_name: str, email: str | None,
-                       nickname=None, address=None, photo=None, remove_photo=False):
+                       nickname=None, address=None, photo=None, remove_photo=False,
+                       photo_size=512, photo_fit="fit", crop_x=50, crop_y=50):
         user = self.users.get_by_id(user_id)
         if not user:
             raise ValidationError("User not found.")
@@ -62,7 +75,14 @@ class ProfileService:
             raise ValidationError("Nickname must be 40 characters or fewer.")
         if address is not None and len(address) > 300:
             raise ValidationError("Address must be 300 characters or fewer.")
-        photo_data = self._prepare_photo(photo) if photo and photo.filename else None
+        try:
+            photo_size = int(photo_size)
+            crop_x, crop_y = float(crop_x), float(crop_y)
+        except (ValueError, TypeError):
+            raise ValidationError("Choose valid image resize and crop settings.")
+        if photo_size not in {128, 256, 512, 1024} or photo_fit not in {"fit", "square"} or not all(math.isfinite(v) and 0 <= v <= 100 for v in (crop_x, crop_y)):
+            raise ValidationError("Choose valid image resize and crop settings.")
+        photo_data = self._prepare_photo(photo, photo_size, photo_fit, crop_x, crop_y) if photo and photo.filename else None
         details = self.get_details(user_id)
         if nickname is not None:
             details.nickname = nickname

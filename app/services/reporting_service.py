@@ -100,6 +100,65 @@ def wallet_change(transaction):
     return amount if transaction.direction == "IN" else -(amount + Decimal(transaction.fee or 0))
 
 
+def report_visualization(transactions):
+    """Chart data for precisely the same scoped, filtered ledger as the report.
+
+    Successful outgoing values include fees. Cumulative net change starts at zero;
+    it is a change within the selected period, never an inferred wallet balance.
+    Histogram bins count successful outgoing wallet deductions, with a distinct
+    overflow bin so no unusually large transaction can disappear from the chart.
+    """
+    records = list(transactions)
+    completed = [tx for tx in records if tx.status == "SUCCESS"]
+    daily, categories, deductions = {}, {}, []
+    zero = Decimal("0.00")
+    for tx in completed:
+        day = local_datetime(tx.created_at).date().isoformat()
+        row = daily.setdefault(day, {"incoming": zero, "outgoing": zero})
+        if tx.direction == "IN":
+            row["incoming"] += Decimal(tx.amount)
+        elif tx.direction == "OUT":
+            deduction = Decimal(tx.amount) + Decimal(tx.fee or 0)
+            row["outgoing"] += deduction
+            categories[tx.kind] = categories.get(tx.kind, zero) + deduction
+            deductions.append(deduction)
+    cumulative_in, cumulative_out = zero, zero
+    daily_rows = []
+    for day, row in sorted(daily.items()):
+        cumulative_in += row["incoming"]
+        cumulative_out += row["outgoing"]
+        daily_rows.append({
+            "date": day, "incoming": float(row["incoming"]), "outgoing": float(row["outgoing"]),
+            "net": float(row["incoming"] - row["outgoing"]),
+            "cumulative_incoming": float(cumulative_in), "cumulative_outgoing": float(cumulative_out),
+            "cumulative_net": float(cumulative_in - cumulative_out),
+        })
+    category_rows = [
+        {"kind": kind, "label": kind.replace("_", " ").title(), "amount": float(amount)}
+        for kind, amount in sorted(categories.items(), key=lambda pair: (-pair[1], pair[0]))
+    ]
+    boundaries = [(0, 500), (500, 1000), (1000, 5000), (5000, 10000), (10000, 50000), (50000, None)]
+    histogram, running_count = [], 0
+    for lower, upper in boundaries:
+        count = sum(1 for value in deductions if value >= lower and (upper is None or value < upper))
+        running_count += count
+        label = f"{lower:,}+" if upper is None else f"{lower:,}–<{upper:,}"
+        histogram.append({
+            "lower": lower, "upper": upper, "label": label, "count": count,
+            "cumulative_count": running_count,
+            "cumulative_percent": round(running_count * 100 / len(deductions), 2) if deductions else 0,
+        })
+    return {
+        "daily": daily_rows, "categories": category_rows, "histogram": histogram,
+        "successful_count": len(completed), "outgoing_count": len(deductions),
+        "excluded_count": len(records) - len(completed),
+        "incoming_total": float(cumulative_in), "outgoing_total": float(cumulative_out),
+        "net_change": float(cumulative_in - cumulative_out),
+        "largest_category": category_rows[0] if category_rows else None,
+        "largest_category_percent": round(category_rows[0]["amount"] * 100 / float(cumulative_out), 1) if category_rows and cumulative_out else 0,
+    }
+
+
 def filter_schedules(schedules, *, direction="", kind="", query="", status="", start_date=None, end_date=None):
     """Due dates are distinct from the historical transaction period."""
     if direction == "IN":

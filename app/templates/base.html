@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ ui_language }}" data-theme="{{ ui_theme }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffd400">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
 </head>
 <body class="{% if not current_user %}auth-body{% endif %}">
 {% if current_user %}
@@ -21,12 +22,13 @@
     </a>
     <nav class="side-nav">
       <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}"><span aria-hidden="true">&#8962;</span>Dashboard</a>
-      <a class="nav-link {% if request.endpoint in ['wallet.send_money', 'wallet.cash_out'] %}active{% endif %}" href="{{ url_for('wallet.send_money') }}"><span aria-hidden="true">&#8599;</span>Transfer Money</a>
+      <a class="nav-link {% if request.endpoint == 'wallet.send_money' %}active{% endif %}" href="{{ url_for('wallet.send_money') }}"><span aria-hidden="true">&#8599;</span>Send Money</a>
+      <a class="nav-link {% if request.endpoint == 'wallet.transfer_money' %}active{% endif %}" href="{{ url_for('wallet.transfer_money') }}"><span aria-hidden="true">&#8644;</span>Transfer Money</a>
+      <a class="nav-link {% if request.endpoint == 'wallet.cash_out' %}active{% endif %}" href="{{ url_for('wallet.cash_out') }}"><span aria-hidden="true">&#127975;</span>Cash Out</a>
       <a class="nav-link {% if payment_active %}active{% endif %}" href="{{ url_for('payments.index') }}"><span aria-hidden="true">&#9635;</span>Payment</a>
       <a class="nav-link {% if request.endpoint == 'wallet.add_money' %}active{% endif %}" href="{{ url_for('wallet.add_money') }}"><span aria-hidden="true">&#65291;</span>Add Money</a>
       <a class="nav-link {% if financial_active %}active{% endif %}" href="{{ url_for('payments.financial_services') }}"><span aria-hidden="true">&#8962;</span>Financial Services</a>
       <a class="nav-link {% if other_active %}active{% endif %}" href="{{ url_for('payments.other_services') }}"><span aria-hidden="true">&#9707;</span>Other Services</a>
-      <a class="nav-link {% if request.blueprint == 'profile' %}active{% endif %}" href="{{ url_for('profile.index') }}"><span aria-hidden="true">&#9817;</span>Profile</a>
       <a class="nav-link {% if request.blueprint == 'operations' %}active{% endif %}" href="{{ url_for('operations.schedules') }}"><span aria-hidden="true">&#8635;</span>Auto Pay</a>
       <a class="nav-link {% if report_active %}active{% endif %}" href="{{ url_for('wallet.history') }}"><span aria-hidden="true">&#9677;</span>Report</a>
     </nav>
@@ -47,6 +49,17 @@
       </form>
       <div class="top-actions">
         <a class="icon-button assistant-toggle" id="assistantToggle" href="{{ url_for('assistant.index') }}" aria-label="Open app assistant" aria-haspopup="dialog" aria-controls="assistantDialog" aria-expanded="false"><span aria-hidden="true">&#10022;</span></a>
+        <details class="theme-dropdown">
+          <summary class="icon-button" aria-label="Appearance" title="Appearance"><span aria-hidden="true">&#9680;</span></summary>
+          <form class="theme-panel" method="post" action="{{ url_for('navigation.display_preferences') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <strong>Appearance</strong>
+            {% for value, label in [('light', 'Light'), ('dark', 'Dark'), ('system', 'System')] %}
+            <button class="theme-choice {{ 'selected' if ui_theme == value else '' }}" name="theme" value="{{ value }}" type="submit">{{ t(label) }}{% if ui_theme == value %} ✓{% endif %}</button>
+            {% endfor %}
+          </form>
+        </details>
         <details class="notification-dropdown" id="notificationDropdown">
           <summary class="icon-button notification-toggle" aria-label="Notifications{% if navbar_alerts.unread_count %}, {{ navbar_alerts.unread_count }} unread{% endif %}" aria-controls="notificationPanel" aria-expanded="false">
             <span aria-hidden="true">&#128276;</span>
@@ -59,11 +72,14 @@
             {% elif navbar_alerts['items'] %}
               <div class="notification-list">
                 {% for tx in navbar_alerts['items'] %}
-                <a class="notification-item {% if tx.id > navbar_alerts.read_through %}unread{% endif %}" href="{{ url_for('navigation.notifications') }}">
+                <form method="post" action="{{ url_for('navigation.open_notification', transaction_id=tx.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="notification-item {% if tx.id > navbar_alerts.read_through and tx.id not in navbar_alerts.read_ids %}unread{% endif %}" aria-label="{{ t('Open details') }}: {{ tx.title }}">
                   <span class="notification-dot" aria-hidden="true"></span>
                   <div><strong>{{ tx.title }}</strong><small>{{ tx.counterparty or tx.reference or 'Wallet transaction' }} &middot; {{ tx.status|replace('_', ' ')|title }}</small><small>{{ ui_local_time(tx.created_at).strftime('%d %b, %H:%M') }} BD</small></div>
                   <span class="tx-amount {{ ('credit' if tx.direction == 'IN' else 'debit') if tx.status == 'SUCCESS' else 'muted' }}">{% if tx.status == 'SUCCESS' %}{{ '+' if tx.direction == 'IN' else '-' }}{% endif %}{{ currency }}{{ '%.2f'|format(tx.amount) }}</span>
-                </a>
+                </button>
+                </form>
                 {% endfor %}
               </div>
               {% if navbar_alerts.unread_count %}
@@ -75,9 +91,19 @@
             {% else %}<p class="muted">No transactions yet. Your wallet activity will appear here.</p>{% endif %}
           </section>
         </details>
+        <form class="language-switch" method="post" action="{{ url_for('navigation.display_preferences') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.full_path }}">
+          <label class="sr-only" for="navbarLanguage">Language</label>
+          <select id="navbarLanguage" name="language" aria-label="Language" data-language-select>
+            <option value="en" {{ 'selected' if ui_language == 'en' else '' }}>EN</option>
+            <option value="bn" {{ 'selected' if ui_language == 'bn' else '' }}>বাংলা</option>
+          </select>
+          <noscript><button type="submit">Apply</button></noscript>
+        </form>
         <a class="profile-chip" href="{{ url_for('profile.index') }}">
           <div class="avatar">{% if profile_details and profile_details.photo_data %}<img src="{{ url_for('profile.photo') }}" alt="">{% else %}{{ current_user.full_name[0] }}{% endif %}</div>
-          <div class="profile-meta"><strong>{{ profile_details.nickname if profile_details and profile_details.nickname else current_user.full_name }}</strong><small>{{ current_user.mobile }}</small></div>
+          <div class="profile-meta" data-user-content><strong>{{ profile_details.nickname if profile_details and profile_details.nickname else current_user.full_name }}</strong><small>{{ current_user.mobile }}</small></div>
           <span aria-hidden="true">&#8964;</span>
         </a>
       </div>
@@ -88,12 +114,14 @@
         'wallet.send_money': ('dashboard.index', 'Dashboard'),
         'wallet.add_money': ('dashboard.index', 'Dashboard'),
         'wallet.cash_out': ('dashboard.index', 'Dashboard'),
+        'wallet.transfer_money': ('dashboard.index', 'Dashboard'),
         'wallet.receipt': ('wallet.history', 'Report'),
         'wallet.schedule_receipt': ('wallet.history', 'Report'),
         'wallet.transaction_detail': ('wallet.history', 'Report'),
         'payments.recharge': ('payments.index', 'Payments'),
         'payments.savings': ('payments.financial_services', 'Financial Services'),
         'payments.request_money': ('payments.financial_services', 'Financial Services'),
+        'payments.pay_later': ('payments.financial_services', 'Financial Services'),
         'profile.settings': ('profile.index', 'Profile'),
         'navigation.search': ('dashboard.index', 'Dashboard'),
         'navigation.notifications': ('dashboard.index', 'Dashboard'),
@@ -121,10 +149,10 @@
   <a href="{{ url_for('payments.index') }}" class="{% if payment_active or financial_active or other_active %}active{% endif %}"><span aria-hidden="true">&#9638;</span><small>Services</small></a>
   <a href="{{ url_for('wallet.send_money') }}" class="scan-action" aria-label="Send money"><span aria-hidden="true">&#8599;</span></a>
   <a href="{{ url_for('wallet.history') }}" class="{% if report_active %}active{% endif %}"><span aria-hidden="true">&#9677;</span><small>Report</small></a>
-  <a href="{{ url_for('profile.index') }}" class="{% if request.blueprint == 'profile' %}active{% endif %}"><span aria-hidden="true">&#8226;&#8226;&#8226;</span><small>More</small></a>
+  <a href="{{ url_for('operations.schedules') }}" class="{% if request.blueprint == 'operations' %}active{% endif %}"><span aria-hidden="true">&#8635;</span><small>Auto Pay</small></a>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<dialog class="assistant-dialog" id="assistantDialog" aria-labelledby="assistantTitle" data-endpoint="{{ url_for('assistant.ask') }}" data-csrf="{{ csrf_token() }}">
+<dialog class="assistant-dialog" id="assistantDialog" aria-labelledby="assistantTitle" data-endpoint="{{ url_for('assistant.ask') }}" data-history-endpoint="{{ url_for('assistant.history') }}" data-clear-endpoint="{{ url_for('assistant.clear') }}" data-csrf="{{ csrf_token() }}">
   <div class="assistant-header"><div><span class="eyebrow">Your wallet guide</span><h2 id="assistantTitle">App Assistant</h2></div><button type="button" class="icon-button" id="assistantClose" aria-label="Close assistant">&#10005;</button></div>
   <p class="assistant-mode">{{ 'AI app assistant' if assistant_hosted else 'Local app guide' }} <span>· Demo wallet</span></p>
   <p class="assistant-privacy">{% if assistant_hosted %}Questions and account totals go to the configured AI provider. Avoid passwords and OTPs.{% else %}Uses app guidance and your wallet totals. Free-form AI answers need a configured provider.{% endif %}</p>
@@ -141,6 +169,10 @@
   <div class="assistant-footer"><small>Guidance only. Confirm payments in the app.</small><button type="button" class="text-button" id="assistantClear">Clear chat</button></div>
 </dialog>
 {% else %}
+  <form class="auth-display-options" method="post" action="{{ url_for('navigation.display_preferences') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.path }}">
+    <label>{{ t('Language') }}<select name="language" data-language-select><option value="en" {{ 'selected' if ui_language == 'en' else '' }}>English</option><option value="bn" {{ 'selected' if ui_language == 'bn' else '' }}>বাংলা</option></select></label>
+  </form>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="auth-flashes flash-stack">
@@ -150,6 +182,8 @@
   {% endwith %}
   {% block auth_content %}{% endblock %}
 {% endif %}
+<script id="uiTranslations" type="application/json">{{ ui_translations|tojson }}</script>
+<script src="{{ url_for('static', filename='js/ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 (() => {
+  const t = window.upayT || (text => text);
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const toggle = document.getElementById('menuToggle');
@@ -65,8 +66,8 @@
     if (!providerIsAllowed) billProvider.value = '';
     const heading = document.querySelector('[data-bill-heading]');
     const accountLabel = document.querySelector('[data-bill-account-label]');
-    if (heading && selected?.dataset.heading) heading.textContent = selected.dataset.heading;
-    if (accountLabel && selected?.dataset.accountLabel) accountLabel.textContent = selected.dataset.accountLabel;
+    if (heading && selected?.dataset.heading) heading.textContent = t(selected.dataset.heading);
+    if (accountLabel && selected?.dataset.accountLabel) accountLabel.textContent = t(selected.dataset.accountLabel);
   };
   billCategory?.addEventListener('change', updateBillCategory);
   updateBillCategory();
@@ -114,7 +115,7 @@
       if (transfer) provider.value = '';
       else if (!provider.value || provider.selectedOptions[0]?.disabled) provider.value = Array.from(provider.options).find(option => option.value && !option.disabled)?.value || '';
       const numberLabel = form.querySelector('[data-schedule-recipient-label]');
-      if (numberLabel) numberLabel.textContent = bill ? 'Bill account / Payment reference' : 'Recipient mobile number';
+      if (numberLabel) numberLabel.textContent = t(bill ? 'Bill account / Payment reference' : 'Recipient mobile number');
       if (number) {
         number.placeholder = bill ? 'DEMO-METER-1001' : '01XXXXXXXXX';
         number.inputMode = bill ? 'text' : 'tel';
@@ -135,7 +136,7 @@
       const inputDate = dueDate.value;
       const cents = Math.round(Number(amount.value) * 100);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(inputDate) || inputDate < dueDate.min || inputDate > dueDate.max || !Number.isFinite(cents) || cents <= 0 || cents > 10000000) {
-        preview.textContent = 'Choose a valid date and amount to preview your payment installments. No balance is deducted when you save a plan.';
+        preview.textContent = t('Choose a valid date and amount to preview your payment installments. No balance is deducted when you save a plan.');
         return;
       }
       const [year, month, originalDay] = inputDate.split('-').map(Number);
@@ -148,9 +149,12 @@
           dates.push(nextDate);
         }
       }
-      const labels = dates.map(value => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)));
+      const bangla = document.documentElement.lang === 'bn';
+      const labels = dates.map(value => new Intl.DateTimeFormat(bangla ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)));
       const total = (cents * dates.length / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      preview.textContent = `${dates.length} installment${dates.length === 1 ? '' : 's'}: ${labels.join(' · ')}. Planned total: BDT ${total}. ${autoPay?.value === '0' ? 'Manual payment when due.' : 'Auto Pay when due.'} Saving this plan does not deduct balance.`;
+      preview.textContent = bangla
+        ? `${dates.length} কিস্তি: ${labels.join(' · ')}। পরিকল্পিত মোট: ৳ ${total}। ${autoPay?.value === '0' ? 'নির্ধারিত দিনে নিজে পরিশোধ করুন।' : 'নির্ধারিত দিনে অটো পে।'} পরিকল্পনা সংরক্ষণ করলে ব্যালেন্স কাটা হয় না।`
+        : `${dates.length} installment${dates.length === 1 ? '' : 's'}: ${labels.join(' · ')}. Planned total: BDT ${total}. ${autoPay?.value === '0' ? 'Manual payment when due.' : 'Auto Pay when due.'} Saving this plan does not deduct balance.`;
     };
     [dueDate, frequency, amount, autoPay].forEach(input => {
       input?.addEventListener('input', updateSchedulePreview);
@@ -181,7 +185,7 @@
       const currentController = new AbortController();
       controller = currentController;
       const timeout = setTimeout(() => currentController.abort(), 10000);
-      setStatus('Checking recipient...', 'loading');
+      setStatus(t('Checking recipient...'), 'loading');
       try {
         const response = await fetch(`${form.dataset.recipientLookup}?${params}`, {
           signal: currentController.signal, headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin'
@@ -191,15 +195,15 @@
         const result = await response.json();
         if (!response.ok && !(response.status === 400 && result.status === 'invalid')) throw new Error('lookup');
         if (revision !== generation) return;
-        const description = result.status === 'blocked' ? 'Blocked number. This recipient cannot transact.'
-          : result.status === 'registered' ? `Registered: ${result.name || result.authorization_name || 'Verified account'}`
-          : result.status === 'invalid' ? (result.message || 'Enter a valid recipient number or reference.')
-          : 'Not registered. No verified name exists in this project directory.';
-        const authority = result.authorization_name && result.authorization_name !== result.name ? ` Authorizing provider: ${result.authorization_name}.` : '';
+        const description = result.status === 'blocked' ? t('Blocked number. This recipient cannot transact.')
+          : result.status === 'registered' ? `${t('Registered')}: ${result.name || result.authorization_name || t('Verified account')}`
+          : result.status === 'invalid' ? t(result.message || 'Enter a valid recipient number or reference.')
+          : t('Not registered. No verified name exists in this project directory.');
+        const authority = result.authorization_name && result.authorization_name !== result.name ? ` ${t('Authorizing provider')}: ${result.authorization_name}.` : '';
         setStatus(description + authority, result.status);
       } catch (error) {
         if (revision !== generation) return;
-        setStatus('Recipient check is unavailable. Check your connection; the server will validate when you submit.', 'unavailable');
+        setStatus(t('Recipient check is unavailable. Check your connection; the server will validate when you submit.'), 'unavailable');
       } finally {
         clearTimeout(timeout);
       }
@@ -259,13 +263,13 @@
   };
   const setAssistantBusy = busy => {
     assistantBusy = busy;
-    if (assistantSend) { assistantSend.disabled = busy; assistantSend.textContent = busy ? 'Sending...' : 'Send'; }
+    if (assistantSend) { assistantSend.disabled = busy; assistantSend.textContent = t(busy ? 'Sending...' : 'Send'); }
     if (question) question.disabled = busy;
     if (assistantClear) assistantClear.disabled = busy;
     promptButtons.forEach(button => { button.disabled = busy; });
     messages?.setAttribute('aria-busy', String(busy));
   };
-  assistantToggle?.addEventListener('click', event => {
+  assistantToggle?.addEventListener('click', async event => {
     if (!assistantDialog?.showModal) return;
     event.preventDefault();
     if (notifications?.open) notifications.open = false;
@@ -273,6 +277,18 @@
     if (!assistantDialog.open) assistantDialog.showModal();
     assistantToggle.setAttribute('aria-expanded', 'true');
     question?.focus();
+    if (!assistantBusy) {
+      setAssistantBusy(true);
+      try {
+        const response = await fetch(assistantDialog.dataset.historyEndpoint, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(t('Unable to load chat. Refresh and try again.'));
+        const result = await response.json();
+        messages.querySelectorAll('.assistant-message:not(:first-child)').forEach(message => message.remove());
+        conversation = Array.isArray(result.messages) ? result.messages.slice(-8) : [];
+        conversation.forEach(message => appendMessage(t(message.role === 'user' ? 'You' : 'App Assistant'), message.content, message.role === 'user' ? 'user' : 'guide'));
+      } catch (error) { assistantStatus.textContent = error.message; }
+      finally { setAssistantBusy(false); if (assistantDialog.open) question.focus(); }
+    }
   });
   document.getElementById('assistantClose')?.addEventListener('click', () => assistantDialog?.close());
   assistantDialog?.addEventListener('close', () => {
@@ -289,8 +305,8 @@
     const prompt = question?.value.trim();
     if (!prompt || assistantBusy) return;
     setAssistantBusy(true);
-    assistantStatus.textContent = 'Reading your app information...';
-    const userBubble = appendMessage('You', prompt, 'user');
+    assistantStatus.textContent = t('Reading your app information...');
+    const userBubble = appendMessage(t('You'), prompt, 'user');
     const currentController = new AbortController();
     const timeout = setTimeout(() => currentController.abort(), 25000);
     try {
@@ -301,16 +317,16 @@
       });
       const jsonResponse = response.headers.get('content-type')?.includes('application/json');
       const result = jsonResponse ? await response.json() : {};
-      if (!response.ok) throw new Error(result.error || (response.status === 400 ? 'Your session token expired. Refresh this page and try again.' : 'The assistant is unavailable. Try again shortly.'));
-      if (typeof result.answer !== 'string') throw new Error('The assistant could not answer. Try again.');
-      appendMessage(result.mode_label || 'App Assistant', result.answer, 'guide', result.links || []);
+      if (!response.ok) throw new Error(t(result.error || (response.status === 400 ? 'Your session token expired. Refresh this page and try again.' : 'The assistant is unavailable. Try again shortly.')));
+      if (typeof result.answer !== 'string') throw new Error(t('The assistant could not answer. Try again.'));
+      appendMessage(t(result.mode_label || 'App Assistant'), result.answer, 'guide', result.links || []);
       conversation.push({ role: 'user', content: prompt }, { role: 'assistant', content: result.answer });
       conversation = conversation.slice(-8);
       question.value = '';
-      assistantStatus.textContent = result.notice || `${result.mode_label || 'App Assistant'} answered using your demo app information.`;
+      assistantStatus.textContent = result.notice || result.status || t('Answered using your own demo account information.');
     } catch (error) {
       userBubble.remove();
-      assistantStatus.textContent = error.name === 'AbortError' ? 'The assistant timed out. Your question is saved below; try again.' : error.message;
+      assistantStatus.textContent = error.name === 'AbortError' ? t('The assistant timed out. Your question is saved below; try again.') : t(error.message);
     } finally {
       clearTimeout(timeout);
       setAssistantBusy(false);
@@ -328,12 +344,18 @@
     question.value = button.dataset.assistantPrompt;
     assistantForm?.requestSubmit();
   }));
-  assistantClear?.addEventListener('click', () => {
+  assistantClear?.addEventListener('click', async () => {
     if (assistantBusy) return;
-    conversation = [];
-    messages?.querySelectorAll('.assistant-message:not(:first-child)').forEach(message => message.remove());
-    assistantStatus.textContent = 'Chat cleared.';
-    question.value = '';
-    question.focus();
+    setAssistantBusy(true);
+    try {
+      const response = await fetch(assistantDialog.dataset.clearEndpoint, { method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRFToken': assistantDialog.dataset.csrf, Accept: 'application/json', 'Content-Type': 'application/json' }, body: '{}' });
+      if (!response.ok) throw new Error(t('Unable to clear chat. Refresh and try again.'));
+      conversation = [];
+      messages?.querySelectorAll('.assistant-message:not(:first-child)').forEach(message => message.remove());
+      assistantStatus.textContent = t('Chat cleared.');
+      question.value = '';
+    } catch (error) { assistantStatus.textContent = error.message; }
+    finally { setAssistantBusy(false); question.focus(); }
   });
 })();

@@ -1,34 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="hero-banner">
-  <div>
-    <span class="eyebrow dark">Verified Wallet ✓</span>
-    <h1>Welcome, {{ current_user.full_name }} 👋</h1>
-    <p>{{ current_user.mobile }} · Your services and wallet activity in one place.</p>
-  </div>
-  <div class="hero-shapes" aria-hidden="true"><span></span><span></span><span></span></div>
-</section>
-
-<section class="section-card period-filter" aria-label="Dashboard date range">
-  <div>
-    <h2>{{ stats.period_label }} activity</h2>
-    <p class="muted">{{ stats.start_date.strftime('%d %b %Y') }}{% if days != 1 %} – {{ stats.end_date.strftime('%d %b %Y') }}{% endif %} · Bangladesh time</p>
-  </div>
-  <div class="filter-controls">
-    <form method="get" action="{{ url_for('dashboard.index') }}">
-      <label for="dashboard-days">Days (1–120)</label>
-      <input id="dashboard-days" type="number" name="days" min="1" max="120" value="{{ days }}" required>
-      <button class="btn btn-primary" type="submit">Apply</button>
-    </form>
-    <div class="period-presets" aria-label="Common date ranges">
-      {% for count, label in [(1, 'Today'), (7, '7 days'), (30, '30 days'), (120, '120 days')] %}
-      <a class="btn btn-soft {{ 'active' if days == count else '' }}" href="{{ url_for('dashboard.index', days=count) }}"{% if days == count %} aria-current="true"{% endif %}>{{ label }}</a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
 <section class="stats-grid" aria-label="Wallet summary">
   <article class="stat-card"><div class="stat-icon blue">৳</div><div><small>Current Balance</small><h3>৳ {{ '%.2f'|format(stats.balance) }}</h3><a href="{{ url_for('wallet.add_money') }}">Add Money</a></div></article>
   <article class="stat-card"><div class="stat-icon green">↗</div><div><small>{{ stats.card_prefix }} Transactions</small><h3>{{ stats.transaction_count }}</h3><a href="{{ url_for('wallet.history', days=days) }}">View Transactions</a></div></article>
@@ -36,6 +8,34 @@
   <article class="stat-card"><div class="stat-icon purple">↗</div><div><small>{{ stats.card_prefix }} Money Out</small><h3>৳ {{ '%.2f'|format(stats.outgoing_total) }}</h3><a href="{{ url_for('wallet.history', days=days, direction='OUT') }}">View Money Out</a></div></article>
 </section>
 <p class="muted dashboard-summary-note">Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.</p>
+
+<section class="section-card quick-pay-card">
+  <div class="section-head"><h2>Quick Payment</h2></div>
+  <div class="quick-pay-grid">
+    {% for service in quick_payments %}
+    <a href="{{ url_for(service.endpoint, **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><span>{{ service.label }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="hero-banner">
+  <div>
+    <span class="eyebrow dark">Wallet Demo</span>
+    <h1>{{ t('Welcome, ') }}<span data-user-content>{{ current_user.full_name }}</span> 👋</h1>
+    <p>Your services and wallet activity in one place.</p>
+  </div>
+  <div class="hero-shapes" aria-hidden="true"><span></span><span></span><span></span></div>
+</section>
+
+<section class="section-card period-filter" aria-label="Dashboard date range">
+  <div><h2>{{ stats.period_label }} activity</h2><p class="muted">{{ stats.start_date.strftime('%d %b %Y') }}{% if days != 1 %} – {{ stats.end_date.strftime('%d %b %Y') }}{% endif %} · Bangladesh time</p></div>
+  <div class="filter-controls">
+    <form method="get" action="{{ url_for('dashboard.index') }}"><label for="dashboard-days">Days (1–120)</label><input id="dashboard-days" type="number" name="days" min="1" max="120" value="{{ days }}" required><button class="btn btn-primary" type="submit">Apply</button></form>
+    <div class="period-presets" aria-label="Common date ranges">
+      {% for count, label in [(1, 'Today'), (7, '7 days'), (30, '30 days'), (120, '120 days')] %}<a class="btn btn-soft {{ 'active' if days == count else '' }}" href="{{ url_for('dashboard.index', days=count) }}"{% if days == count %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+    </div>
+  </div>
+</section>
 
 <section class="section-card">
   <div class="section-head"><div><span class="eyebrow">Popular</span><h2>Quick Services</h2></div><a href="{{ url_for('navigation.search') }}">See All →</a></div>
@@ -67,13 +67,5 @@
     <a class="btn btn-soft" href="{{ url_for('wallet.history', days=days) }}">Review Report</a>
   </section>
 
-  <section class="section-card quick-pay-card">
-    <div class="section-head"><h2>Quick Payment</h2></div>
-    <div class="quick-pay-grid">
-      {% for service in quick_payments %}
-      <a href="{{ url_for(service.endpoint, **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><span>{{ service.label }}</span></a>
-      {% endfor %}
-    </div>
-  </section>
 </div>
 {% endblock %}

@@ -7,4 +7,5 @@ instance/*.db
 .tmp/
 artifacts/
 tmp/export-qa/
+tmp/browser-qa/
 .DS_Store

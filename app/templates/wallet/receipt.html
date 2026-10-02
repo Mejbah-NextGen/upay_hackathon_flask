@@ -5,18 +5,23 @@
 <section class="section-card receipt-card">
   <div class="section-head"><h2>Transaction details</h2><span class="status-badge {{ 'status-success' if tx.status == 'SUCCESS' else 'status-other' }}">{{ tx.status|replace('_', ' ')|title }}</span></div>
   <dl class="receipt-details">
-    <div><dt>Account holder</dt><dd>{{ current_user.full_name }}</dd></div>
-    <div><dt>Wallet number</dt><dd>{{ current_user.mobile }}</dd></div>
-    <div><dt>Reference</dt><dd>{{ tx.reference or '—' }}</dd></div>
+    <div><dt>Account holder</dt><dd data-user-content>{{ current_user.full_name }}</dd></div>
+    <div><dt>Wallet number</dt><dd data-user-content>{{ current_user.mobile }}</dd></div>
+    <div><dt>Reference</dt><dd data-user-content>{{ tx.reference or '—' }}</dd></div>
     <div><dt>Transaction ID</dt><dd>{{ tx.id }}</dd></div>
+    {% if payment_invoice %}
+    <div><dt>{{ t('Invoice number') }}</dt><dd>{{ payment_invoice.invoice_number }}</dd></div>
+    <div><dt>{{ t('Bill account') }}</dt><dd>{{ payment_invoice.account_reference }}</dd></div>
+    <div><dt>{{ t('Bill invoice reference') }}</dt><dd>{{ payment_invoice.invoice_reference or '—' }}</dd></div>
+    {% endif %}
     <div><dt>Date and time (BD)</dt><dd>{{ local_time(tx.created_at).strftime('%d %b %Y, %I:%M %p') }}</dd></div>
     <div><dt>Type</dt><dd>{{ tx.kind|replace('_', ' ')|title }}</dd></div>
-    <div><dt>Counterparty / provider</dt><dd>{{ tx.counterparty or 'Wallet' }}</dd></div>
+    <div><dt>Counterparty / provider</dt><dd data-user-content>{{ tx.counterparty or t('Wallet') }}</dd></div>
     <div><dt>Direction</dt><dd>{{ 'Money in' if tx.direction == 'IN' else 'Money out' }}</dd></div>
     <div><dt>Amount</dt><dd>৳ {{ '%.2f'|format(tx.amount) }}</dd></div>
     <div><dt>Fee</dt><dd>৳ {{ '%.2f'|format(tx.fee) }}</dd></div>
     <div><dt>Wallet change</dt><dd class="{{ 'credit' if wallet_change > 0 else 'debit' if wallet_change < 0 else 'muted' }}">{{ '+' if wallet_change > 0 else '' }}৳ {{ '%.2f'|format(wallet_change) }}</dd></div>
-    <div><dt>Note</dt><dd>{{ tx.note or 'No note' }}</dd></div>
+    <div><dt>Note</dt><dd data-user-content>{{ tx.note or t('No note') }}</dd></div>
   </dl>
   <h2>Print / download receipt</h2>
   <form class="report-export-form" method="get" action="{{ url_for('wallet.download_receipt', transaction_id=tx.id) }}"><label for="receiptFormat">Choose format</label><select id="receiptFormat" name="format"><option value="pdf">PDF (.pdf)</option><option value="jpg">Image (.jpg)</option></select><button class="btn btn-primary" type="submit">Download receipt</button></form>

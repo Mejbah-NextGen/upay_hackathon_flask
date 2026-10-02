@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Report · {{ app_name }}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
 <div class="page-heading"><div><span class="eyebrow">Wallet records</span><h1>Report</h1><p>Review transactions, upcoming payments, receipts and filtered exports.</p></div><a class="btn btn-soft" href="{{ url_for('operations.schedules') }}">Manage auto pay</a></div>
 <section class="section-card">
   <form class="form-stack history-filters" method="get" action="{{ url_for('wallet.history') }}">
@@ -34,7 +35,7 @@
     <label>Status
       <select name="status">
         <option value="">All statuses</option>
-        {% for value in ['SUCCESS', 'PENDING', 'FAILED', 'SCHEDULED', 'COMPLETED', 'CANCELLED'] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ value|replace('_', ' ')|title }}</option>{% endfor %}
+        {% for value in ['SUCCESS', 'PENDING', 'FAILED', 'DEFERRED', 'SCHEDULED', 'COMPLETED', 'CANCELLED'] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ value|replace('_', ' ')|title }}</option>{% endfor %}
       </select>
     </label>
     <label>Start date (BD)<input name="start_date" type="date" value="{{ start_date.isoformat() if start_date else '' }}"></label>
@@ -55,6 +56,27 @@
   <p class="muted">Exports include every matching record, fees, references, scheduled payment details and a final summary. Both formats include page formatting and page numbers when printed.</p>
 </section>
 {% if scope != 'scheduled' %}
+<section class="section-card report-analysis" aria-labelledby="reportAnalysisTitle">
+  <div class="section-head"><div><span class="eyebrow">{{ t('Filtered account insights') }}</span><h2 id="reportAnalysisTitle">{{ t('Your activity at a glance') }}</h2></div><span class="muted">{{ analytics.successful_count }} {{ t('successful transactions') }}</span></div>
+  <p class="muted">{{ t('All charts use the date, type, direction, status and search filters above. Money out includes fees. Failed and pending records are excluded.') }}</p>
+  {% if analytics.successful_count %}
+  <div class="report-insights">
+    <div><span>{{ t('Net wallet change') }}</span><strong class="{{ 'credit' if analytics.net_change >= 0 else 'debit' }}">BDT {{ '%+.2f'|format(analytics.net_change) }}</strong><small>{{ t('Change in this selection, not your current balance') }}</small></div>
+    {% if analytics.largest_category %}<div><span>{{ t('Largest outgoing category') }}</span><strong>{{ t(analytics.largest_category.label) }}</strong><small>BDT {{ '%.2f'|format(analytics.largest_category.amount) }} · {{ analytics.largest_category_percent }}% {{ t('of money out') }}</small></div>{% endif %}
+    <div><span>{{ t('Average money out') }}</span><strong>BDT {{ '%.2f'|format(analytics.outgoing_total / analytics.outgoing_count if analytics.outgoing_count else 0) }}</strong><small>{{ analytics.outgoing_count }} {{ t('successful outgoing transactions') }}</small></div>
+  </div>
+  <div class="report-chart-grid">
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Money in and out') }}</h3><p>{{ t('Bar chart by Bangladesh date; long periods are grouped.') }}</p></figcaption><div id="reportBarChart" class="report-chart" role="img" aria-label="{{ t('Money in and money out bar chart') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative activity') }}</h3><p>{{ t('Running totals within your filtered selection; starts at zero.') }}</p></figcaption><div id="reportCumulativeChart" class="report-chart" role="img" aria-label="{{ t('Cumulative money in, money out and net change graph') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-in"></i>{{ t('Money in') }}</span><span><i class="chart-swatch chart-out"></i>{{ t('Money out') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Net change') }}</span></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Spending by category') }}</h3><p>{{ t('Pie chart of successful money out, including fees.') }}</p></figcaption><div id="reportPieChart" class="report-chart" role="img" aria-label="{{ t('Spending category pie chart') }}"></div><div id="reportPieLegend" class="report-chart-legend"></div></figure>
+    <figure class="report-chart-card"><figcaption><h3>{{ t('Cumulative histogram') }}</h3><p>{{ t('Bars count money-out amounts in BDT bands. The line shows the cumulative share.') }}</p></figcaption><div id="reportHistogramChart" class="report-chart" role="img" aria-label="{{ t('Money out amount histogram with cumulative percentage') }}"></div><div class="report-chart-legend"><span><i class="chart-swatch chart-out"></i>{{ t('Transaction count') }}</span><span><i class="chart-swatch chart-net"></i>{{ t('Cumulative percentage') }}</span></div></figure>
+  </div>
+  <details class="report-chart-data"><summary>{{ t('View chart data') }}</summary><div class="table-wrap"><table class="data-table"><thead><tr><th>{{ t('Date (BD)') }}</th><th>{{ t('Money in') }}</th><th>{{ t('Money out') }}</th><th>{{ t('Cumulative net change') }}</th></tr></thead><tbody>{% for row in analytics.daily %}<tr><td>{{ row.date }}</td><td>BDT {{ '%.2f'|format(row.incoming) }}</td><td>BDT {{ '%.2f'|format(row.outgoing) }}</td><td>BDT {{ '%.2f'|format(row.cumulative_net) }}</td></tr>{% endfor %}</tbody></table></div><div class="table-wrap"><table class="data-table"><thead><tr><th>{{ t('Amount band (BDT)') }}</th><th>{{ t('Transaction count') }}</th><th>{{ t('Cumulative percentage') }}</th></tr></thead><tbody>{% for row in analytics.histogram %}<tr><td>{{ row.label }}</td><td>{{ row.count }}</td><td>{{ row.cumulative_percent }}%</td></tr>{% endfor %}</tbody></table></div></details>
+  <script id="reportChartData" type="application/json">{{ analytics|tojson }}</script>
+  <script id="reportChartLabels" type="application/json">{{ {'incoming':t('Money in'), 'outgoing':t('Money out'), 'net':t('Net change'), 'empty':t('No successful money out matches these filters.'), 'transactions':t('Transaction count'), 'cumulative':t('Cumulative percentage')}|tojson }}</script>
+  <script src="{{ url_for('static', filename='js/reports.js') }}" defer></script>
+  {% else %}<p class="empty-state">{{ t('No successful transactions match these filters. Change the date or other filters to analyze your activity.') }}</p>{% endif %}
+</section>
 <section class="section-card">
   <div class="section-head"><h2>Recorded transactions</h2>{% if dates %}<span class="muted">{{ dates[0].strftime('%d %b %Y') }}{% if days != 1 %} – {{ dates[1].strftime('%d %b %Y') }}{% endif %}</span>{% endif %}</div>
   <div class="history-summary">

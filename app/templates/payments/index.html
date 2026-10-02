@@ -2,12 +2,6 @@
 {% block title %}{{ group.label }} · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">Services</span><h1>{{ group.label }}</h1><p>{{ group.description }}</p></div></div>
-<nav class="service-hub-tabs" aria-label="Service groups">
-  {% for group_id, label, endpoint in [('payment', 'Payments', 'payments.index'), ('financial', 'Financial Services', 'payments.financial_services'), ('other', 'Other Services', 'payments.other_services')] %}
-  <a class="btn btn-light {% if active_service_group == group_id %}active{% endif %}" href="{{ url_for(endpoint) }}" {% if active_service_group == group_id %}aria-current="page"{% endif %}>{{ label }}</a>
-  {% endfor %}
-  <a class="btn btn-light" href="{{ url_for('navigation.search') }}">All Services</a>
-</nav>
 <section class="section-card">
   <div class="service-grid large-services">
     {% for service in services %}

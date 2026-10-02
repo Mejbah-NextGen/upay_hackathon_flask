@@ -1,0 +1,10 @@
+<details class="qr-card" data-operation-qr data-qr-kind="{{ qr_kind }}" data-qr-url="{{ url_for('navigation.qr_image') }}" data-qr-verify="{{ url_for('navigation.verify_qr') }}" data-qr-upload="{{ url_for('navigation.read_qr_image') }}" data-csrf="{{ csrf_token() }}">
+  <summary>{{ t('QR payment instructions') }}</summary>
+  <p class="muted">{{ t('Generate or read a demo QR to fill this form. Review the recipient, amount and fee before confirming. Codes expire after 15 minutes.') }}</p>
+  <img class="qr-image" width="180" height="180" alt="{{ t('Demo operation QR code') }}" data-qr-image data-reference="{{ qr_reference|default('') }}" data-provider="{{ qr_provider|default('') }}" data-amount="{{ qr_amount|default('') }}">
+  <button class="btn btn-soft" type="button" data-qr-generate>{{ t('Generate QR') }}</button>
+  <label>{{ t('Read QR image') }}<input type="file" accept="image/*" data-qr-file></label>
+  <label>{{ t('Or paste UpayX QR text') }}<input type="text" maxlength="2000" data-qr-text placeholder="UPAYX:..."></label>
+  <button class="btn btn-soft" type="button" data-qr-read>{{ t('Read QR') }}</button>
+  <p class="muted" role="status" data-qr-status>{{ t('QR only prepares the form; it never moves money.') }}</p>
+</details>

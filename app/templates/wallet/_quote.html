@@ -1,0 +1,9 @@
+<section class="wallet-quote" aria-label="Wallet deduction preview" aria-live="polite" data-wallet-balance="{{ '%.2f'|format(current_user.balance) }}">
+  <dl>
+    <div><dt>{{ t('Withdrawal / transfer amount') }}</dt><dd data-wallet-principal>৳ 0.00</dd></div>
+    <div><dt>{{ t('Service fee') }}</dt><dd data-wallet-fee>৳ 0.00</dd></div>
+    <div><dt>{{ t('Total deduction') }}</dt><dd data-wallet-total>৳ 0.00</dd></div>
+    <div><dt>{{ t('Remaining balance') }}</dt><dd data-wallet-remaining>৳ {{ '%.2f'|format(current_user.balance) }}</dd></div>
+  </dl>
+  <p class="muted" data-wallet-quote-status>{{ t('Enter an amount to see your exact fee and remaining balance.') }}</p>
+</section>

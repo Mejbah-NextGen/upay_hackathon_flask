@@ -9,7 +9,7 @@ from app.domain.models import Transaction, User
 from app.extensions import db
 from app.services.reporting_service import (
     LOCAL_TIMEZONE, dashboard_report, filter_transactions, local_datetime, parse_days,
-    period_dates,
+    period_dates, report_visualization,
 )
 from tests.helpers import AppTestCase
 
@@ -91,6 +91,33 @@ class ReportingUnitTests(unittest.TestCase):
         self.assertEqual(filter_transactions(rows, kind="MOBILE_RECHARGE", query="018123", now=self.now), [recharge])
         self.assertEqual(filter_transactions(rows, query="upx-bill", now=self.now), [match])
 
+    def test_chart_series_share_successful_totals_and_bangladesh_calendar(self):
+        rows = [
+            transaction(datetime(2026, 10, 1, 18, 0), amount='100.00', fee='1.50'),
+            transaction(self.now, amount='500.00', direction='IN', kind='ADD_MONEY'),
+            transaction(self.now, amount='5000.00', status='FAILED'),
+            transaction(self.now, amount='3000.00', status='PENDING'),
+        ]
+        charts = report_visualization(rows)
+        self.assertEqual(charts['successful_count'], 2)
+        self.assertEqual(charts['excluded_count'], 2)
+        self.assertEqual(charts['daily'][0]['date'], '2026-10-02')
+        self.assertEqual(charts['outgoing_total'], 101.5)
+        self.assertEqual(charts['incoming_total'], 500.0)
+        self.assertEqual(charts['daily'][-1]['cumulative_net'], 398.5)
+        self.assertEqual(charts['categories'][0]['amount'], 101.5)
+        self.assertEqual(sum(row['count'] for row in charts['histogram']), 1)
+        self.assertEqual(charts['histogram'][-1]['cumulative_percent'], 100)
+
+    def test_histogram_includes_every_boundary_amount_once_and_has_overflow_bin(self):
+        rows = [transaction(self.now, amount=str(amount)) for amount in (499, 500, 999, 1000, 5000, 10000, 50000, 100000)]
+        histogram = report_visualization(rows)['histogram']
+        self.assertEqual([row['count'] for row in histogram], [1, 2, 1, 1, 1, 2])
+        self.assertEqual([row['cumulative_count'] for row in histogram], [1, 3, 4, 5, 6, 8])
+        self.assertEqual(histogram[-1]['cumulative_percent'], 100)
+        self.assertEqual(report_visualization([])['daily'], [])
+        self.assertEqual(report_visualization([])['histogram'][-1]['cumulative_percent'], 0)
+
 
 class ReportingRouteTests(AppTestCase):
     def setUp(self):
@@ -163,6 +190,22 @@ class ReportingRouteTests(AppTestCase):
         self.assertEqual(len(context["transactions"]), 5)
         _, context = self.get_context("/wallet/history?days=12")
         self.assertEqual(context["days"], 12)
+
+    def test_filtered_charts_use_same_user_scope_and_records_as_report(self):
+        response, context = self.get_context('/wallet/history?days=7&kind=CASH_OUT&direction=OUT')
+        charts = context['analytics']
+        self.assertEqual(charts['outgoing_total'], 101.5)
+        self.assertEqual(charts['successful_count'], 1)
+        self.assertEqual([row['kind'] for row in charts['categories']], ['CASH_OUT'])
+        self.assertNotIn('Private Payment', response.get_data(as_text=True))
+        self.assertIn('reportCumulativeChart', response.get_data(as_text=True))
+        self.assertIn('reportHistogramChart', response.get_data(as_text=True))
+        _, context = self.get_context('/wallet/history?status=FAILED')
+        self.assertEqual(context['analytics']['successful_count'], 0)
+        self.assertEqual(context['analytics']['outgoing_total'], 0)
+        response, context = self.get_context('/wallet/history?scope=scheduled')
+        self.assertNotIn('reportChartData', response.get_data(as_text=True))
+        self.assertEqual(context['analytics']['successful_count'], 0)
 
 
 if __name__ == "__main__":
