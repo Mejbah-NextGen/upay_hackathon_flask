@@ -3,9 +3,11 @@ __pycache__/
 *.py[cod]
 .env
 instance/*.db
+instance/backups/
 .pytest_cache/
 .tmp/
 artifacts/
 tmp/export-qa/
 tmp/browser-qa/
+tmp/pdfs/
 .DS_Store

@@ -2,6 +2,16 @@
 
 A responsive **desktop + mobile wallet web app** inspired by the supplied UI references. This is a hackathon/demo project only; it does not connect to real financial rails, SMS providers, banks, cards, or payment gateways.
 
+## Competition package and new Financial Health Center
+
+- [Competition README](README_LEGENDARY.md): researched comparison with the real Bangladesh upay app, implemented differentiators, judging evidence and a five-minute demo.
+- [Complete user manual](USER_MANUAL.md): setup, every service, reports, financial insights, troubleshooting and administrator tasks.
+- [Complete database PDF](output/pdf/UPAYX_DATABASE_REPORT.pdf): every table, row and stored column, schema definitions, page directory and an embedded exact JSON snapshot.
+
+Open **Financial Health** from the sidebar or Dashboard to see the next seven calendar days' payment reserves, an explained safe-to-spend estimate, 30-day cash flow, review signals for unusual or closely repeated payments, and reconciliation against a separately recorded opening balance. Signals invite receipt review; they do not decide whether a payment is fraud. All views use the signed-in account's data.
+
+The replacement dataset is **realistic synthetic demo data**, approved for this hackathon, spanning **5 June through 2 October 2026** in Bangladesh time. It contains no real upay customer records. Its opening balances and successful ledger effects reconcile with the stored wallet balances. Repeat startup preserves the dataset and the user's later activity.
+
 ## Features
 
 - Passwordless mobile login + demo OTP
@@ -132,13 +142,13 @@ Try these examples:
 | Titas Gas | `DEMO-GAS-1001` | Demo Household Gas |
 | Bill payment | `DEMO-BLOCKED-1001` | Blocked account |
 
-Startup safely adds missing demo transactions for each of the latest 120 calendar days, covering all six ledger operation types and bill categories. Imported records are labeled with `DEMO120-` references and explanatory notes. They are sample history added alongside the demo opening balance, so seeding does not recompute or overwrite existing balances. Data is retained beyond 120 days as well; nothing is automatically deleted. Repeated startup does not duplicate the same dated fixture.
+Startup adds missing initial demo history for a new legacy demo wallet without changing an existing balance. An existing fixture window is preserved rather than extended on every restart. The explicit reset command below creates the richer, reconciled 120-day synthetic dataset with provenance, independent opening balances and related-table fixtures; it replaces previous active database records after backing them up.
 
 ## Auto Pay
 
 Open **Auto Pay** to schedule Send Money, Recharge or Bill Payment. Choose a first date, one-time or monthly frequency, and automatic or manual payment mode. The horizon ends on the last day of the second upcoming calendar month. Monthly installments retain the chosen day, adjusting for shorter months. Review the dates and total before saving. Plans debit the wallet only when due, with sufficient balance and valid recipients; failed plans retain an explanation and do not deduct funds. Cancel pending plans individually. Four labeled demonstration installments are added across the next two months.
 
-Due automatic installments run when their owner opens the app. For processing even while nobody is browsing, run the separate demo worker:
+Due automatic installments run when their owner opens an eligible app page; the Financial Health page stays read-only. For processing even while nobody is browsing, run the separate demo worker:
 
 ```powershell
 .venv\Scripts\python.exe -m flask --app run run-due-payments --watch --interval 30
@@ -188,7 +198,7 @@ Existing accounts and transaction history are retained. The app creates the new 
 Run the isolated regression suite:
 
 ```powershell
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 python -m unittest discover -s tests -v
 node --check app/static/js/app.js
 node --check app/static/js/ui.js
@@ -196,7 +206,7 @@ node --check app/static/js/wallet.js
 node --check app/static/js/reports.js
 ```
 
-Tests use in-memory SQLite databases and do not change `instance/upay_hackathon.db`. They cover provider/category validation, date boundaries, user isolation, transaction totals, transfers, fees, search, notifications, preferences, authentication, CSRF protection, profile upload validation, recipient blocking, due-only scheduled payments, report formats, PDF pagination, Excel formulas/cached totals and assistant privacy. The development dependencies include PDF parsing and rendering tools for export QA.
+Regression tests use in-memory SQLite or disposable files under the workspace and do not change `instance/upay_hackathon.db`. They cover provider/category validation, date boundaries, user isolation, transaction totals, transfers, fees, search, notifications, preferences, authentication, CSRF protection, profile upload validation, recipient blocking, due-only scheduled payments, report formats, PDF pagination, Excel formulas/cached totals, assistant privacy, financial insights and complete database exports. The dependencies include PDF parsing and rendering tools for export QA.
 
 Generate isolated sample exports and page images for visual review:
 
@@ -218,13 +228,21 @@ Open `http://127.0.0.1:5001` and use the demo login above. The preview uses a te
 
 ## Reset demo database
 
-Stop the app and delete:
+Stop the app and any Auto Pay worker, then run the explicit reset command:
 
-```text
-instance/upay_hackathon.db
+```powershell
+python scripts/reset_demo_data.py --confirm --as-of 2026-10-02
 ```
 
-Then run the app again. The demo account and sample transactions will be recreated.
+This replaces all active records in the project's local SQLite database and writes a recovery backup under `instance/backups/`. It creates a deterministic 120-day household dataset with clearly labelled synthetic records, supporting fixtures and ledger anchors. Omit `--as-of` to use the current Bangladesh date. Normal startup never performs this reset.
+
+Regenerate the complete administrator PDF after changing the database:
+
+```powershell
+python scripts/export_database_pdf.py
+```
+
+The exporter reads SQLite directly in read-only mode without starting the app or inserting fixtures. It includes all accounts and all tables, including empty tables, and verifies database integrity and the embedded snapshot checksum. Customer Report downloads remain scoped to the signed-in user's filtered transactions.
 
 ## Hackathon notes
 

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ url_for('static', filename='css/insights.css') }}">{% endblock %}
 {% block content %}
 <section class="hero-banner">
   <div>
@@ -27,6 +28,10 @@
   <article class="stat-card"><div class="stat-icon purple">↗</div><div><small>{{ stats.card_prefix }} Money Out</small><h3>৳ {{ '%.2f'|format(stats.outgoing_total) }}</h3><a href="{{ url_for('wallet.history', days=days, direction='OUT') }}">View Money Out</a></div></article>
 </section>
 <p class="muted dashboard-summary-note">Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.</p>
+
+<section class="section-card health-entry">
+  <div class="section-head"><div><span class="eyebrow">Explainable wallet planning</span><h2>Financial Health Center</h2><p class="muted">See what is left after upcoming payments, verify your ledger and review unusual activity.</p></div><a class="btn btn-soft" href="{{ url_for('insights.index') }}">Open Financial Health</a></div>
+</section>
 
 <section class="section-card quick-pay-card">
   <div class="section-head"><h2>Quick Payment</h2></div>

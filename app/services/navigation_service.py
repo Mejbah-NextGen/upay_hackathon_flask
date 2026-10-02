@@ -18,6 +18,7 @@ def service_return_target(value):
         "/payments/financial-services": "Financial Services",
         "/payments/other-services": "Other Services", "/schedules": "Auto Pay",
         "/wallet/report": "Report", "/wallet/history": "Report", "/search": "Search",
+        "/insights": "Financial Health",
     }
     if not isinstance(value, str) or len(value) > 500:
         return None

@@ -133,6 +133,7 @@ SERVICES = (
     _service("savings", "Savings", "🏦", "payments.savings", "financial", "Save a fixed monthly plan and estimate maturity at a demo 10% annual rate.", ("save", "monthly", "calculator", "plan", "tenure", "interest", "10%")),
     _service("pay-later", "Pay Later", "🛍️", "payments.pay_later", "financial", "Track a deferred demo purchase and repay it from your wallet.", ("credit", "repay", "deferred", "buy now", "due")),
     _service("auto-pay", "Auto Pay", "↻", "operations.schedules", "financial", "Schedule one-time or monthly demo payments for the next two months.", ("schedule", "scheduled", "automatic", "future", "one-time", "monthly", "prepay")),
+    _service("financial-health", "Financial Health", "♡", "insights.index", "financial", "Review your safe-to-spend estimate, upcoming commitments, ledger reconciliation and receipt signals.", ("health", "insights", "budget", "safe-to-spend", "reconcile", "unusual", "duplicate")),
     _service("fund-transfer", "Transfer Money", "🔁", "wallet.transfer_money", "financial", "Record a demo NPSB / BEFTN bank transfer or a Visa card transfer.", ("bank", "NPSB", "BFTN", "BEFTN", "Visa", "card", "account", "transfer")),
     _service("request-money", "Request Money", "💬", "payments.request_money", "financial", "Prepare a money request message to share yourself.", ("request", "collect", "receive")),
     *(

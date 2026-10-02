@@ -7,6 +7,7 @@
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
+  {% block head_extra %}{% endblock %}
 </head>
 <body class="{% if not current_user %}auth-body{% endif %}">
 {% if current_user %}
@@ -30,6 +31,7 @@
       <a class="nav-link {% if financial_active %}active{% endif %}" href="{{ url_for('payments.financial_services') }}"><span aria-hidden="true">&#8962;</span>Financial Services</a>
       <a class="nav-link {% if other_active %}active{% endif %}" href="{{ url_for('payments.other_services') }}"><span aria-hidden="true">&#9707;</span>Other Services</a>
       <a class="nav-link {% if request.blueprint == 'operations' %}active{% endif %}" href="{{ url_for('operations.schedules') }}"><span aria-hidden="true">&#8635;</span>Auto Pay</a>
+      <a class="nav-link {% if request.blueprint == 'insights' %}active{% endif %}" href="{{ url_for('insights.index') }}"><span aria-hidden="true">&#9825;</span>Financial Health</a>
       <a class="nav-link {% if report_active %}active{% endif %}" href="{{ url_for('wallet.history') }}"><span aria-hidden="true">&#9677;</span>Report</a>
     </nav>
     <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
@@ -123,7 +125,8 @@
         'profile.settings': ('profile.index', 'Profile'),
         'navigation.search': ('dashboard.index', 'Dashboard'),
         'navigation.notifications': ('dashboard.index', 'Dashboard'),
-        'assistant.index': ('dashboard.index', 'Dashboard')
+        'assistant.index': ('dashboard.index', 'Dashboard'),
+        'insights.index': ('dashboard.index', 'Dashboard')
       } %}
       {% set parent = back_links.get(request.endpoint) %}
       {% if request.endpoint == 'payments.pay_bill' %}

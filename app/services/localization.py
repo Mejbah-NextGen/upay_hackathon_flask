@@ -121,9 +121,11 @@ BANGLA = {
 from app.services.localization_extra import EXTRA_BANGLA
 from app.services.localization_wallet import WALLET_BANGLA
 from app.services.localization_assistant import ASSISTANT_BANGLA
+from app.services.localization_insights import INSIGHTS_BANGLA
 BANGLA.update(EXTRA_BANGLA)
 BANGLA.update(WALLET_BANGLA)
 BANGLA.update(ASSISTANT_BANGLA)
+BANGLA.update(INSIGHTS_BANGLA)
 BANGLA.update({
     "bill": "বিল", "bills": "বিল", "payment": "পেমেন্ট", "bank": "ব্যাংক", "card": "কার্ড", "wallet": "ওয়ালেট",
     "Grameenphone": "গ্রামীণফোন", "Robi": "রবি", "Airtel": "এয়ারটেল", "Banglalink": "বাংলালিংক", "Teletalk": "টেলিটক",

@@ -27,13 +27,13 @@ def recipient():
 
 @bp.before_app_request
 def process_due_auto_payments():
-    """For this local demo, process automatic payments whenever the owner visits.
+    """Process automatic payments on owner visits except read-only insights.
 
     The CLI can also be called by a scheduler while the app is not being visited.
     It uses the same atomic due-only executor; requests never create future debits.
     """
     from flask import current_app
-    if request.method != "GET" or request.endpoint == "static" or not session.get("user_id"):
+    if request.method != "GET" or request.endpoint == "static" or request.blueprint == "insights" or not session.get("user_id"):
         return
     if not current_app.config.get("SCHEDULE_AUTO_RUN_ON_REQUEST", True):
         return

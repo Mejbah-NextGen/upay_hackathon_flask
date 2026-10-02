@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('Financial Health Center') }} · {{ app_name }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ url_for('static', filename='css/insights.css') }}">{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Explainable wallet planning</span><h1>Financial Health Center</h1><p class="muted">Your wallet, upcoming commitments and receipt checks in one place.</p></div><a class="btn btn-soft" href="{{ url_for('wallet.history', days=30) }}">Open 30-day Report</a></div>
+
+<section class="health-hero" aria-labelledby="healthBudgetTitle">
+  <div class="health-budget"><span class="health-tag">Next 7 days + overdue</span><h2 id="healthBudgetTitle">Safe-to-spend estimate</h2><strong class="health-amount">{{ currency }} {{ '{:,.2f}'.format(health.safe_to_spend) }}</strong><p>Wallet balance minus recorded commitments due soon.</p><small>{{ health.today.strftime('%d %b') }} – {{ health.horizon_end.strftime('%d %b %Y') }} · Asia/Dhaka</small></div>
+  <div class="health-formula"><div><span>Wallet Balance</span><strong>{{ currency }} {{ '{:,.2f}'.format(health.balance) }}</strong></div><div><span>Scheduled commitments</span><strong>− {{ currency }} {{ '{:,.2f}'.format(health.scheduled_reserve) }}</strong></div><div><span>Pay Later due</span><strong>− {{ currency }} {{ '{:,.2f}'.format(health.pay_later_reserve) }}</strong></div><div class="health-formula-total"><span>After commitments</span><strong>{{ currency }} {{ '{:,.2f}'.format(health.balance - health.reserved) }}</strong></div></div>
+</section>
+{% if health.shortfall %}<div class="health-notice health-attention" role="status"><strong>Funding gap</strong><p>{{ currency }} {{ '{:,.2f}'.format(health.shortfall) }} <span>more is needed to cover these commitments. Review due dates or add demo money.</span></p><a href="{{ url_for('wallet.add_money') }}">Add Money</a></div>{% endif %}
+{% if health.unknown_fee_count %}<div class="health-notice health-attention"><strong>Incomplete fee estimate</strong><p>An unsupported scheduled payment was reserved at its principal amount. Review its fees before spending.</p></div>{% endif %}
+<p class="health-scope">Planning estimate from this demo wallet only. Unrecorded expenses and future fees are not included. This page never moves money or blocks payments.</p>
+
+<div class="health-two-columns">
+  <section class="section-card" aria-labelledby="healthCommitmentsTitle">
+    <div class="section-head"><div><span class="eyebrow">Reserve before spending</span><h2 id="healthCommitmentsTitle">Upcoming commitments</h2></div><a href="{{ url_for('operations.schedules') }}">Manage Auto Pay</a></div>
+    <p class="muted"><span>{{ health.commitments|length }}</span> <span>recorded commitments</span> · <span>{{ health.overdue_count }}</span> <span>overdue</span></p>
+    <div class="health-commitments">
+      {% for row in health.commitments %}
+      <article class="health-commitment">
+        <div><span class="health-kind">{{ t('Pay Later') if row.type == 'pay_later' else t('Scheduled payment') }}</span><strong data-user-content>{{ row.item.merchant if row.type == 'pay_later' else (row.item.recipient_name or row.item.provider or row.item.recipient_number) }}</strong><small>{{ row.due.strftime('%d %b %Y') }}{% if row.overdue %} · <span class="health-overdue">{{ t('Overdue') }}</span>{% endif %}{% if row.type == 'schedule' %} · {{ t('Auto Pay') if row.item.auto_pay else t('Manual payment') }}{% endif %}</small></div>
+        <div class="health-commitment-price"><strong>{{ currency }} {{ '{:,.2f}'.format(row.total) }}</strong><small><span>Fee</span> {{ currency }} {{ '%.2f'|format(row.fee) }}</small></div>
+      </article>
+      {% else %}<div class="health-empty"><span aria-hidden="true">✓</span><strong>No commitments due soon</strong><p>Schedules and Pay Later amounts due in this window will appear here.</p></div>{% endfor %}
+    </div>
+    <a class="inline-link" href="{{ url_for('payments.pay_later') }}">Review Pay Later</a>
+  </section>
+
+  <section class="section-card" aria-labelledby="healthObservedTitle">
+    <div class="section-head"><div><span class="eyebrow">Observed, not predicted</span><h2 id="healthObservedTitle">Last 30 days</h2></div></div>
+    <p class="muted">{{ health.period_start.strftime('%d %b') }} – {{ health.today.strftime('%d %b %Y') }} · <span>{{ health.observed_count }}</span> <span>successful entries</span></p>
+    <dl class="health-observed"><div><dt>Incoming money</dt><dd class="credit">{{ currency }} {{ '{:,.2f}'.format(health.incoming) }}</dd></div><div><dt>Money out including fees</dt><dd>{{ currency }} {{ '{:,.2f}'.format(health.outgoing) }}</dd></div><div><dt>Net wallet flow</dt><dd>{{ currency }} {{ '{:,.2f}'.format(health.net_flow) }}</dd></div><div><dt>Daily money-out average</dt><dd>{{ currency }} {{ '{:,.2f}'.format(health.daily_outgoing) }}</dd></div></dl>
+    <p class="health-explanation">The daily average divides successful money out by 30 calendar days, including days without activity. Incoming transfers and top-ups are wallet inflows, not salary estimates.</p>
+    {% if not health.observed_count %}<p class="muted">No successful activity in this period. Start using the demo wallet to build your history.</p>{% endif %}
+  </section>
+</div>
+
+<section class="section-card health-reconciliation" aria-labelledby="healthLedgerTitle">
+  {% set ledger = health.reconciliation %}
+  <div class="section-head"><div><span class="eyebrow">Check the arithmetic</span><h2 id="healthLedgerTitle">Ledger reconciliation</h2></div>{% if ledger.available %}<span class="health-status {{ 'health-status-ok' if ledger.matched else 'health-status-review' }}">{{ t('Matched to opening anchor') if ledger.matched else t('Difference to review') }}</span>{% else %}<span class="health-status">Opening anchor unavailable</span>{% endif %}</div>
+  {% if ledger.available %}
+    <div class="health-ledger-math"><div><small>Recorded opening balance</small><strong>{{ currency }} {{ '{:,.2f}'.format(ledger.opening_balance) }}</strong></div><span aria-hidden="true">+</span><div><small>Successful incoming</small><strong>{{ currency }} {{ '{:,.2f}'.format(ledger.incoming) }}</strong></div><span aria-hidden="true">−</span><div><small>Successful outgoing + fees</small><strong>{{ currency }} {{ '{:,.2f}'.format(ledger.outgoing) }}</strong></div><span aria-hidden="true">=</span><div><small>Expected wallet balance</small><strong>{{ currency }} {{ '{:,.2f}'.format(ledger.expected_balance) }}</strong></div></div>
+    <div class="health-ledger-footer"><p><span>Current minus expected</span>: <strong>{{ currency }} {{ '%.2f'|format(ledger.difference) }}</strong></p><p><span>{{ ledger.successful_count }}</span> <span>successful entries</span> · <span>{{ ledger.excluded_count }}</span> <span>non-success entries excluded</span>{% if ledger.pre_anchor_count %} · {{ ledger.pre_anchor_count }} <span>pre-anchor entries excluded</span>{% endif %}</p></div>
+    <p class="health-explanation"><span>Opening anchor recorded</span>: {{ ledger.recorded_at.strftime('%d %b %Y, %H:%M') }} BD. <span>The comparison uses the recorded opening balance and every successful ledger entry since that instant.</span></p>
+    <details class="health-rules"><summary>Opening anchor source</summary><p data-user-content>{{ ledger.source }}</p></details>
+  {% else %}<p class="muted">A trusted opening balance has not been recorded for this account. Reconciliation cannot verify the current balance yet.</p>{% endif %}
+</section>
+
+<section class="section-card" aria-labelledby="healthSignalsTitle">
+  <div class="section-head"><div><span class="eyebrow">Review receipts</span><h2 id="healthSignalsTitle">Activity review signals</h2></div><span class="health-status"><span>{{ health.signal_count }}</span> <span>signals in the last 7 days</span></span></div>
+  <p class="health-explanation">These transparent rules highlight receipts to inspect. A signal does not mean fraud or an accidental duplicate.</p>
+  <div class="health-signals">
+    {% for signal in health.signals %}
+    <article class="health-signal"><div class="health-signal-mark" aria-hidden="true">{{ '↑' if signal.kind == 'unusual' else '↻' }}</div><div class="health-signal-body"><strong>{{ t('Larger than your usual payment') if signal.kind == 'unusual' else t('Similar payments close together') }}</strong><p data-user-content>{{ signal.transaction.title }} · {{ signal.transaction.counterparty or signal.transaction.reference }} · {{ currency }} {{ '{:,.2f}'.format(signal.transaction.amount + signal.transaction.fee) }}</p><small>{{ ui_local_time(signal.transaction.created_at).strftime('%d %b, %H:%M') }} BD</small>
+      {% if signal.kind == 'unusual' %}<p class="health-explanation"><span>Previous 30-day median for this service</span>: {{ currency }} {{ '{:,.2f}'.format(signal.baseline) }} · {{ signal.sample_count }} <span>earlier payments</span>. <span>This amount exceeds both 3× that median and BDT 1,000.</span></p>{% else %}<p class="health-explanation">Same service, recipient, amount and fee, with two successful receipts within 10 minutes.</p>{% endif %}
+      <div class="button-row"><a class="inline-link" href="{{ url_for('wallet.receipt', transaction_id=signal.transaction.id, return_to='/insights') }}">Inspect receipt</a>{% if signal.kind == 'repeated' %}<a class="inline-link" href="{{ url_for('wallet.receipt', transaction_id=signal.other_transaction.id, return_to='/insights') }}">Compare earlier receipt</a>{% endif %}</div>
+    </div></article>
+    {% else %}<div class="health-empty"><span aria-hidden="true">✓</span><strong>No review signals from these rules</strong><p>Small histories may not have enough earlier payments for a meaningful comparison.</p></div>{% endfor %}
+  </div>
+  {% if health.signal_count > 8 %}<p class="muted">Showing the 8 most recent signals. Review your full Report for more activity.</p>{% endif %}
+</section>
+
+<details class="section-card health-rules"><summary>How this estimate works</summary><ol><li>Reserve unpaid schedules due by the end of this seven-day window, including overdue and failed items. Both automatic and manual plans count. Completed, cancelled and successfully linked payments are excluded.</li><li>Reserve outstanding Pay Later purchases due in this window or earlier. Repaid purchases and successfully linked repayments are excluded. Later obligations remain in Pay Later.</li><li>Supported schedules are Send Money, Mobile Recharge and Bill Payment. Their current demo fee is zero. Pay Later repayment also has zero demo fee.</li><li>Safe-to-spend is the wallet balance minus those reserves, with a minimum of zero. A negative remainder appears as a funding gap. Saved savings calculators do not reserve or debit money.</li><li>Unusual-payment comparisons require at least five earlier successful payments of the same service type within 30 days. Failed, pending and deferred ledger entries do not affect observed cash flow or the reconciliation.</li></ol></details>
+{% endblock %}

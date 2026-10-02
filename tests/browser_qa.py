@@ -30,7 +30,7 @@ def run():
     output = Path('tmp/browser-qa'); output.mkdir(parents=True, exist_ok=True)
     pages = ('/', '/payments', '/wallet/send-money', '/wallet/cash-out', '/wallet/cash-out?channel=ATM',
              '/wallet/transfer-money', '/wallet/transfer-money?channel=VISA', '/wallet/add-money', '/payments/recharge', '/payments/pay-bill?category=gas',
-             '/payments/savings', '/payments/pay-later', '/wallet/report?days=120', '/profile/', '/notifications', '/schedules')
+             '/payments/savings', '/payments/pay-later', '/wallet/report?days=120', '/profile/', '/notifications', '/schedules', '/insights')
     results, errors = [], []
     try:
         with sync_playwright() as playwright:
@@ -55,9 +55,11 @@ def run():
                         results.append(result)
                         if response.status!=200 or metrics['scroll']>width+1 or metrics['overflow']:
                             errors.append(json.dumps(result))
-                        if path in ('/','/wallet/report?days=120') and width in (320,768,1440):
+                        if path in ('/','/wallet/report?days=120','/insights') and width in (320,768,1440):
                             if path=='/':
                                 page.screenshot(path=str(output/f'{language}-{width}-dashboard.png'),full_page=True)
+                            elif path=='/insights':
+                                page.screenshot(path=str(output/f'{language}-{width}-financial-health.png'),full_page=True)
                             else:
                                 page.locator('.report-analysis').screenshot(path=str(output/f'{language}-{width}-report.png'))
                 print(f'{language}: checked {len(pages)*5} viewport/page combinations',flush=True)

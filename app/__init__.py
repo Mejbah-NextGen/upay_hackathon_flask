@@ -10,6 +10,7 @@ from app.domain.notifications import NotificationReadState
 from app.domain.preferences import UserPreference
 from app.domain.profiles import UserProfile
 from app.domain.operations import RecipientRegistration, ScheduledPayment
+from app.domain.demo import DemoDataset, WalletOpeningBalance
 from app.extensions import csrf, db
 
 
@@ -29,6 +30,7 @@ def create_app(config_object=DevelopmentConfig):
     from app.blueprints.profile.routes import bp as profile_bp
     from app.blueprints.navigation.routes import bp as navigation_bp
     from app.blueprints.assistant.routes import bp as assistant_bp
+    from app.blueprints.insights.routes import bp as insights_bp
     from app.blueprints.operations.routes import bp as operations_bp, register_operations_cli
 
     app.register_blueprint(auth_bp)
@@ -38,6 +40,7 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(profile_bp)
     app.register_blueprint(navigation_bp)
     app.register_blueprint(assistant_bp)
+    app.register_blueprint(insights_bp)
     app.register_blueprint(operations_bp)
     register_operations_cli(app)
 
@@ -93,9 +96,10 @@ def create_app(config_object=DevelopmentConfig):
 
     with app.app_context():
         db.create_all()
-        _seed_demo_data()
-        from app.services.demo_seed import seed_demo_operations
-        seed_demo_operations(User.query.filter_by(mobile="01329097775").one())
+        if app.config.get("SEED_DEMO_DATA", True):
+            _seed_demo_data()
+            from app.services.demo_seed import seed_demo_operations
+            seed_demo_operations(User.query.filter_by(mobile="01329097775").one())
 
     return app
 
