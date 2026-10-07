@@ -1,0 +1,216 @@
+{
+  "artifacts": [
+    {
+      "artifact": "regression-baseline.json",
+      "artifact_sha256": "d95aad78bf41f8b466d1ac0a4aa412a418cdeba3de55414da44531439de48a91",
+      "bytes": 549,
+      "observed_on": "2026-10-07",
+      "scope": "Earlier full regression baseline; final-polish tests are newer",
+      "source": "tmp/infrastructure-qa/regression-final.json",
+      "source_file_timestamp_utc": "2026-10-07T04:13:39.740576+00:00",
+      "source_sha256": "75563f3429b56a619b18ea94c47ff3fb700bd3c311be64522dd748d653501f26",
+      "status": "historical_baseline",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "postgres-qa.json",
+      "artifact_sha256": "4150a65eda2ea7f7a606b1f007cb0231b4f462bcc85aec54846c99e553db7fee",
+      "bytes": 1243,
+      "observed_on": "2026-10-07",
+      "scope": "Disposable PostgreSQL 18.6 at migration 03; six concurrent/failure tests; cluster removed",
+      "source": "tmp/infrastructure-qa/postgres-qa.json",
+      "source_file_timestamp_utc": "2026-10-07T04:09:58.345218+00:00",
+      "source_sha256": "27249ae661a852822e53e40b18fa9a317b0c12c2cd9279363038e8c1d8b8c5e6",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "load-sqlite.json",
+      "artifact_sha256": "8e0bf1cc92768904700c5cccacb3c870a015420889390eef99d22917c0166ef5",
+      "bytes": 1494,
+      "observed_on": "2026-10-07",
+      "scope": "240 HTTP requests, 8 clients, one local instance/synthetic user; measurement quota 10000/60s; not production capacity",
+      "source": "tmp/infrastructure-qa/load-sqlite.json",
+      "source_file_timestamp_utc": "2026-10-07T04:01:47.667466+00:00",
+      "source_sha256": "1c7d7d486db405ebb80f69bd9b2b8620eff3b2c2895912ce16b161cbccdf74bf",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "load-postgres.json",
+      "artifact_sha256": "dde9cf59f6540291d243c75180a703f7a0a60f99098842e8e7b1926805765a1e",
+      "bytes": 1497,
+      "observed_on": "2026-10-07",
+      "scope": "240 HTTP requests, 8 clients, one local instance/synthetic user; measurement quota 10000/60s; not production capacity",
+      "source": "tmp/infrastructure-qa/load-postgres.json",
+      "source_file_timestamp_utc": "2026-10-07T04:09:56.620162+00:00",
+      "source_sha256": "c7b2f33503aaf4a56453accb297b639f72aaa74480645f483b7c302725bc6f31",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "provider-contract.json",
+      "artifact_sha256": "f15dec38163c6f34121fb02406da65849eb704b465ef4b2b42bdd1bff893a840",
+      "bytes": 625,
+      "observed_on": "2026-10-07",
+      "scope": "Independent signed loopback reference sandbox; lost-response recovery with one provider charge; no real upay or local wallet debit",
+      "source": "tmp/infrastructure-qa/provider-contract.json",
+      "source_file_timestamp_utc": "2026-10-07T04:05:22.069813+00:00",
+      "source_sha256": "bd50ebac314c300b22e366182378d3009646bdaa980bdbcfa30549c4e6aaf2d0",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "model-evaluation.json",
+      "artifact_sha256": "84e01480524c437326b8c9b99e462a115695658d9bea46382c4913e213a867ac",
+      "bytes": 393,
+      "observed_on": "2026-10-07",
+      "scope": "Offline synthetic held-out model reproduction; 300 examples; not customer impact or real-population calibration",
+      "source": "tmp/infrastructure-qa/model-evaluation.json",
+      "source_file_timestamp_utc": "2026-10-07T04:14:51.264853+00:00",
+      "source_sha256": "97e896e7d84daf40cb3f9db56626f5acdae6599ecee072ebe436bf72d13ae27f",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "browser-base.json",
+      "artifact_sha256": "38b814b4e3993c7d65a5f9a7c3acaa70723c50bd6246f914430bde452f1657ea",
+      "bytes": 765,
+      "observed_on": "2026-10-07",
+      "scope": "170 responsive layout checks; isolated Chrome synthetic prototype",
+      "source": "tmp/browser-qa/results.json",
+      "source_file_timestamp_utc": "2026-10-07T04:05:45.420499+00:00",
+      "source_sha256": "4cedc2bf6571e133bd99fdccf958d79442d92c4f6106eae3372ac7a081334821",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "browser-feedback.json",
+      "artifact_sha256": "75318ed04ab47fd1af905086c070110cd1682a85b71e4d3c7353f0bda60da43c",
+      "bytes": 580,
+      "observed_on": "2026-10-07",
+      "scope": "32 focused responsive checks and six recorded planning/pilot flow assertions",
+      "source": "tmp/feedback-qa/browser-feedback-results.json",
+      "source_file_timestamp_utc": "2026-10-07T04:01:51.965180+00:00",
+      "source_sha256": "295b2ff14e70726eeefadf5e813ea8714cdafc9e8e68595774c746abba20d294",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "browser-security.json",
+      "artifact_sha256": "04b0a28c32c022d6d11935d77ae86c9cb347eb364983897eb23af2e1b1cdde8b",
+      "bytes": 979,
+      "observed_on": "2026-10-07",
+      "scope": "20 layouts + 48 assertions over EN/BN desktop/mobile; no page/CSP errors; four expected HTTP400 resource messages",
+      "source": "tmp/infrastructure-qa/browser-security/results.json",
+      "source_file_timestamp_utc": "2026-10-07T04:13:31.245605+00:00",
+      "source_sha256": "18386fa67366ccc486dec5ee608c988f29ca7525a6dd5002887f92151bfa46be",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "ai-safety.json",
+      "artifact_sha256": "8652d2e209fe096d0e43987b4c5a1e86aed3f740614bc29b129e11f7e324d89a",
+      "bytes": 3800,
+      "observed_on": "2026-10-07",
+      "scope": "35/35 offline guard cases; hosted live model not evaluated; not independent penetration testing",
+      "source": "output/qa/ai-safety.json",
+      "source_file_timestamp_utc": "2026-10-07T04:11:48.472920+00:00",
+      "source_sha256": "47c7df674aa5b5799dc0ee8335766057589d946f099a19a8b0829a64b1febaa6",
+      "status": "observed_2026_10_07",
+      "transformation": "Reviewed field allowlist; UTF-8 JSON normalization; no raw logs, credentials, customer values or database URLs"
+    },
+    {
+      "artifact": "judge-browser.json",
+      "artifact_sha256": "7de161838c0fc1c80822c4f5d79acdb4ac8855366f12837610b6b7a936e10173",
+      "bytes": 2184,
+      "observed_on": "2026-10-07",
+      "scope": "Final corrected isolated judge walkthrough in Chrome EN/BN at390/1440;52layouts,64assertions,20parsedexports; main/defaultjudgefiles unchanged; only four deliberate offline-lookup abort console notices",
+      "source": "tmp/submission-qa/browser/results.json",
+      "source_file_timestamp_utc": "2026-10-07T04:33:47.476435+00:00",
+      "source_sha256": "0806aab9ea843d24c9e27b66b3718fe54bae4cf1c9db65663cb9655805f9cd30",
+      "status": "observed_final_polish",
+      "transformation": "Reviewed aggregate allowlist; UTF-8 JSON; raw URLs, export filenames, credentials and console bodies omitted"
+    },
+    {
+      "artifact": "regression-current.json",
+      "artifact_sha256": "2fe178d84275c000786d9472c010924c79380b40a3fb7f0c03545f784ca4110e",
+      "bytes": 1017,
+      "observed_on": "2026-10-07",
+      "scope": "Final code regression:335discovered,329passed,6PostgreSQL-only cases skipped; optionalML/judge/inventory/packaging tests ran; main wallet preserved",
+      "source": "tmp/submission-qa/regression-current.json",
+      "source_file_timestamp_utc": "2026-10-07T04:35:38.868823+00:00",
+      "source_sha256": "fb42d860910333c69956eab1b145beea1827dc841bd8b1991d43aac0dc092db9",
+      "status": "observed_final_polish",
+      "transformation": "Reviewed field allowlist and UTF-8 normalization; source log content excluded, log SHA256 retained"
+    },
+    {
+      "artifact": "submission-readiness.json",
+      "artifact_sha256": "d8b9d59bee2966893da38b6c35564407cbc2c9dfb79d5eadd3261adc8bf6fd87",
+      "bytes": 23651,
+      "observed_on": "2026-10-07",
+      "scope": "Initial separate fixture plus independent extracted prebundle with no mainDB/.env/.venv;37tables120days,CSRFlogin,seven200pages,byte-preservingrestart,judge-onlyinventory; installedinterpreterdependencies supplied",
+      "sources": [
+        {
+          "observed_on": "2026-10-07",
+          "source": "tmp/submission-qa/judge-readiness.json",
+          "source_file_timestamp_utc": "2026-10-07T04:31:37.269280+00:00",
+          "source_sha256": "edc6a557e0961959c0e19c513bb01597d810a6c1b4692872797807b15b6b2e4c"
+        },
+        {
+          "observed_on": "2026-10-07",
+          "source": "tmp/submission-qa/fresh-checkout.json",
+          "source_file_timestamp_utc": "2026-10-07T04:34:43.784455+00:00",
+          "source_sha256": "b55e3d317b2d3ba5805d6dc907deb2a3613569d6f128604a04a15096c151d9ef"
+        }
+      ],
+      "status": "observed_final_polish",
+      "transformation": "Merged independent observations in separate labelled objects; initial direct path/mobile/OTP/wallet values omitted; extracted report retains only safe flags/routes and exact relative source SHA256s"
+    }
+  ],
+  "current_final_suite": {
+    "artifact": "regression-current.json",
+    "discovered_tests": 335,
+    "passed_tests": 329,
+    "skipped_scope": "Six PostgreSQL-only cases require the guarded disposable runner; six separately observed passes are in postgres-qa.json. No optional-ML or packaging cases skipped in this environment.",
+    "skipped_tests": 6,
+    "source_sha256": "fb42d860910333c69956eab1b145beea1827dc841bd8b1991d43aac0dc092db9",
+    "status": "observed_final_polish"
+  },
+  "current_judge_walkthrough": {
+    "artifact": "judge-browser.json",
+    "final_presentation_fixes_included": [
+      "Bangla labels",
+      "favicon",
+      "upcoming payment promotion"
+    ],
+    "source_sha256": "0806aab9ea843d24c9e27b66b3718fe54bae4cf1c9db65663cb9655805f9cd30",
+    "status": "observed_final_polish"
+  },
+  "excluded": [
+    "raw logs",
+    "credentials and database URLs",
+    "tokens and device identifiers",
+    "customer questions or references",
+    "databases and sidecars",
+    "downloaded PostgreSQL binaries"
+  ],
+  "fresh_checkout_verification": {
+    "artifact": "submission-readiness.json",
+    "dependency_installation_retested": false,
+    "runtime_hashes_still_match_workspace": true,
+    "section": "independent_extracted_checkout",
+    "source_sha256": "b55e3d317b2d3ba5805d6dc907deb2a3613569d6f128604a04a15096c151d9ef",
+    "status": "observed_final_polish",
+    "verified_runtime_file_count": 189
+  },
+  "limitations": [
+    "Synthetic local evidence does not validate customer outcomes, real upay settlement or production deployment.",
+    "Source timestamps are file recording timestamps; observation date is the documented QA run date.",
+    "The SHA256s preserve provenance of reviewed local reports; they are not external certification."
+  ],
+  "original_feedback_source": "docs/JUDGE_FEEDBACK.md",
+  "prepared_on": "2026-10-07",
+  "purpose": "Reviewed synthetic prototype observations; historical baseline and final-polish runs explicitly distinguished",
+  "schema_version": 1
+}

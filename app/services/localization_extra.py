@@ -4,6 +4,12 @@
 EXTRA_BANGLA = {
     # Sign-in and account creation.
     "AI Hackathon Demo": "এআই হ্যাকাথন ডেমো",
+    "Secure sign in": "নিরাপদ প্রবেশ",
+    "Scheduled payment": "পরিকল্পিত পেমেন্ট",
+    "Manage Auto Pay": "অটো পে পরিচালনা করুন",
+    "Plan your week, manage recurring payments and review your wallet activity.": "সপ্তাহের পরিকল্পনা করুন, নিয়মিত পেমেন্ট পরিচালনা করুন এবং ওয়ালেটের কার্যক্রম দেখুন।",
+    "Create an account and verify your mobile number. New accounts start with zero balance.": "অ্যাকাউন্ট তৈরি করে মোবাইল নম্বর যাচাই করুন। নতুন অ্যাকাউন্টের প্রাথমিক ব্যালেন্স শূন্য।",
+    "Payments are due at midnight Bangladesh time. Auto Pay runs in the scheduler or when you select Process Due Auto Pay. Opening a page does not execute payments. A failed payment does not deduct balance and is recorded with its reason.": "বাংলাদেশ সময় রাত ১২টায় পেমেন্টের সময় হয়। সময়সূচি কর্মী চালু থাকলে বা ‘নির্ধারিত অটো পে চালান’ নির্বাচন করলে অটো পে চলে। পৃষ্ঠা খুললে পেমেন্ট হয় না। পেমেন্ট ব্যর্থ হলে ব্যালেন্স কাটে না এবং ব্যর্থতার কারণ রাখা হয়।",
     "Welcome to": "স্বাগতম",
     "Sign in with your mobile number to open your wallet dashboard.": "আপনার ওয়ালেট খুলতে মোবাইল নম্বর দিয়ে প্রবেশ করুন।",
     "or": "অথবা",

@@ -1,0 +1,18 @@
+{
+  "command": ".venv\\Scripts\\python.exe -m unittest discover -q",
+  "discovered_tests": 335,
+  "duration_seconds": 78.924,
+  "evidence_status": "Current final submission polish regression; historical baseline retained separately",
+  "exit_code": 0,
+  "log_sha256": "cf4e6cc5cfec367a0261d593209655f5bbde5501ee2d197fdc8ee2c42f81a10a",
+  "normal_wallet_database_modified": false,
+  "observed_on": "2026-10-07",
+  "passed_tests": 329,
+  "platform": "Windows AMD64",
+  "postgres_report": "postgres-qa.json",
+  "python_version": "3.12.10",
+  "result": "OK (skipped=6)",
+  "scope": "Final submission polish code after Bangla/scheduler/auth/favicon corrections; isolated SQLite/in-memory fixtures plus preservation reads of the existing main file. New judge/inventory/bundle tests included.",
+  "skipped_scope": "Six PostgreSQL-only cases require the guarded disposable runner; six separately observed passes are in postgres-qa.json. No optional-ML or packaging cases skipped in this environment.",
+  "skipped_tests": 6
+}

@@ -1,0 +1,38 @@
+{
+  "binary_provenance": {
+    "archive_sha256": "e2246ba91d22345bc3d017586c09ede52d9df180b1eeb480f050445f1cad84e2",
+    "bytes": 384620317,
+    "extracted_components": [
+      "pgsql/bin",
+      "pgsql/lib",
+      "pgsql/share"
+    ],
+    "installed_service": false,
+    "official_page": "https://www.enterprisedb.com/download-postgresql-binaries",
+    "used_existing_cluster": false
+  },
+  "concurrency_tests_passed": 6,
+  "durability_settings": {
+    "fsync": true,
+    "synchronous_commit": true
+  },
+  "load_invariants_passed": true,
+  "load_report": "load-postgres.json",
+  "loopback_only": true,
+  "migrated_table_count_including_alembic_and_guard": 39,
+  "migration_revision": "20261007_03",
+  "postgresql_version": "18.6",
+  "schema_version": 1,
+  "scope": "local fixture evidence, not managed PostgreSQL failover or production capacity certification",
+  "temporary_cluster": true,
+  "temporary_cluster_stopped_and_removed": true,
+  "test_types": [
+    "duplicate schedule claim",
+    "competing guarded debits",
+    "ledger/audit failure rollback",
+    "API duplicate-key race across eight connections",
+    "provider outbox competing leases",
+    "expired lease/lost-response reconciliation"
+  ],
+  "used_existing_cluster": false
+}

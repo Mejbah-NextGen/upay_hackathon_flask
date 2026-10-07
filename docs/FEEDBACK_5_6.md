@@ -46,7 +46,7 @@ penetration test or a live hosted-model red-team assessment.
 
 Verification on 7 October 2026:
 
-- **303** default regression tests passed. Six PostgreSQL-only tests are
+- The historical implementation baseline passed **303** default regression tests. Six PostgreSQL-only tests are
   intentionally skipped by that runner and were executed separately.
 - **6** actual PostgreSQL concurrency/recovery tests passed on a disposable
   PostgreSQL 18.6 cluster, migrated to `20261007_03`. Migrated constraints were
@@ -63,9 +63,25 @@ Verification on 7 October 2026:
   network calls in application tests are mocked; live-model evaluation and an
   independent penetration test remain separate work.
 
-Reports are under `tmp/infrastructure-qa`; the checked-in safety corpus result
-is `output/qa/ai-safety.json`. Full workload timings and limits are recorded in
+Reviewed content-free reports are checked in under
+[output/qa/submission](../output/qa/submission/README.md), with source hashes,
+artifact hashes and run dates in the [manifest](../output/qa/submission/manifest.json).
+The earlier 303-pass regression observation is labelled a historical baseline;
+the manifest identifies the current final-polish suite separately. Raw logs and
+credential-bearing operational state are excluded. The source run outputs stay
+under ignored `tmp/infrastructure-qa`; the safety corpus result also remains at
+`output/qa/ai-safety.json`. Full workload timings and limits are recorded in
 [LOAD_TEST.md](LOAD_TEST.md).
+
+The [current final-polish suite](../output/qa/submission/regression-current.json)
+has **329 passing tests and six PostgreSQL-only skips out of 335 discovered**.
+The [final judge walkthrough](../output/qa/submission/judge-browser.json)
+adds 52 responsive checks, 64 actual UI assertions and 20 parsed exports after
+the final presentation fixes. The [independent extracted-checkout check](../output/qa/submission/submission-readiness.json)
+created a reconciled 37-table fixture without a bundled database or `.env`,
+completed CSRF login and seven HTTP 200 pages, and preserved bytes on restart.
+Its exact source hashes and reused-interpreter dependency scope are retained;
+later document/evidence packaging is not presented as a new runtime run.
 
 1. Run the normal synthetic browser app. Open Settings → Device sessions and
    Privacy settings. Demonstrate independent consent, own-account export,

@@ -1,0 +1,14 @@
+{
+  "command": ".venv\\Scripts\\python.exe -m unittest discover -q",
+  "discovered_tests": 309,
+  "duration_seconds": 75.692,
+  "evidence_status": "Historical baseline before final submission polish; not the current final suite",
+  "exit_code": 0,
+  "normal_wallet_database_used": false,
+  "observed_on": "2026-10-07",
+  "passed_tests": 303,
+  "postgres_report": "postgres-qa.json",
+  "result": "OK (skipped=6)",
+  "skipped_scope": "PostgreSQL tests require isolated runner URL; all six separately passed on PostgreSQL 18.6",
+  "skipped_tests": 6
+}

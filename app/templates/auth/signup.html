@@ -6,7 +6,11 @@
     <img class="auth-logo" src="{{ url_for('static', filename='img/logo.svg') }}" alt="logo">
     <span class="eyebrow">Create wallet</span>
     <h1>Sign up</h1>
+    {% if config.DEMO_BALANCES_ALLOWED and not config.SECURITY_PRODUCTION %}
     <p>This is a hackathon prototype. New accounts receive demo balance only.</p>
+    {% else %}
+    <p>Create an account and verify your mobile number. New accounts start with zero balance.</p>
+    {% endif %}
     <form method="post" class="form-stack">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label>Full Name<input name="full_name" placeholder="Your full name" maxlength="120" value="{{ request.form.get('full_name', '') }}" required></label>

@@ -2,6 +2,10 @@
 
 A responsive **desktop + mobile wallet web app** focused on **weekly financial planning and recurring payments**. Wallet operations use synthetic accounts. A signed HTTP reference sandbox demonstrates provider recovery; live Bangladesh upay, SMS, bank and card connections require contracted integrations.
 
+**Phase 2 submission guide:** [phase_2.md](phase_2.md) contains the judge login, safe demo startup, exact verification commands, implementation/evidence map and complete database catalog. [Original judge comments and scores](docs/JUDGE_FEEDBACK.md) are preserved verbatim. Six categories were supplied; the seventh screenshot is pending.
+
+The [judge submission ZIP](output/submission/UPAYX_SUBMISSION.zip) contains source, tests, model artifacts, this guide and reviewed evidence. It excludes environment secrets and runtime databases; its fresh startup creates a separate synthetic fixture. Rebuild after changes with `.venv\Scripts\python.exe scripts/build_submission.py --overwrite`.
+
 ## Feedback 5–6 update
 
 The project now includes versioned scoped bearer APIs, payload-bound idempotency, a leased provider outbox, frozen PostgreSQL/SQLite migrations, durable scheduled-payment workers, private health/metrics and a gateway deployment configuration. Security adds persistent quotas, one-use OTP challenges, revocable browser sessions, transactional signed audits, review-only transaction signals and encrypted AI/provider fields. Hosted AI stays off until the account owner gives explicit consent; research consent, exports, erasure, retention and multilingual injection checks are separate controls.
@@ -18,7 +22,8 @@ See [feedback implementation and judge walkthrough](docs/FEEDBACK_1_4.md), [mode
 
 - [Competition README](README_LEGENDARY.md): researched comparison with the real Bangladesh upay app, implemented differentiators, judging evidence and a five-minute demo.
 - [Complete user manual](USER_MANUAL.md): setup, every service, reports, financial insights, troubleshooting and administrator tasks.
-- [Complete database PDF](output/pdf/UPAYX_DATABASE_REPORT.pdf): every table, row and stored column, schema definitions, page directory and an embedded exact JSON snapshot.
+- [Current database catalog](docs/DATABASE_CATALOG.md): all 37 application tables, column/relationship/constraint definitions and read-only inventories of the preserved database and backups.
+- [Original database PDF](output/pdf/UPAYX_DATABASE_REPORT.pdf): the historical 2 October synthetic snapshot, with rows, schema definitions and an embedded exact JSON snapshot. It predates the Phase 2 control tables.
 
 Open **Financial Health** from the sidebar or Dashboard to see the next seven calendar days' payment reserves, an explained safe-to-spend estimate, 30-day cash flow, review signals for unusual or closely repeated payments, and reconciliation against a separately recorded opening balance. Signals invite receipt review; they do not decide whether a payment is fraud. All views use the signed-in account's data.
 
@@ -124,14 +129,15 @@ upay_hackathon_flask/
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python run.py
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe scripts/judge_demo.py
 ```
 
-Open: `http://127.0.0.1:5000`
+Open: `http://127.0.0.1:5000/?days=30`. Sign in with mobile `01329097775` and synthetic OTP `123456`.
 
-Dependencies include ReportLab, OpenPyXL, Pillow, PyMuPDF, HarfBuzz, pillow-heif and zxing-cpp. Run `pip install -r requirements.txt` when upgrading an existing installation, then restart the app. New tables are created automatically; existing accounts, balances and transaction records are retained. No database reset is needed.
+The judge launcher creates `instance/judge-demo.db` on its first run with a reconciled 120-day household dataset ending on yesterday's completed Bangladesh calendar day. Later runs preserve that database and the judge's activity. It binds to loopback, disables the debugger and hosted/provider connections, and keeps CSRF and browser sessions enabled. It never resets `instance/upay_hackathon.db`. Stop with `Ctrl+C`; use `--port 5001` if port 5000 is busy. For a schema/model/reconciliation check without serving, use `scripts/judge_demo.py --check`.
+
+Dependencies include ReportLab, OpenPyXL, Pillow, PyMuPDF, HarfBuzz, pillow-heif and zxing-cpp. Serving the learned forecast uses its checked-in JSON artifact without NumPy/scikit-learn; install `requirements-ml.txt` to reproduce training and run the complete offline model checks. The legacy `python run.py` entry point opens the preserved main database, auto-adds missing development tables and can execute due plans on eligible page visits. Use the isolated judge launcher for submission review.
 
 ## Reports and receipts
 
@@ -163,19 +169,19 @@ Startup adds missing initial demo history for a new legacy demo wallet without c
 
 Open **Auto Pay** to schedule Send Money, Recharge or Bill Payment. Choose a first date, one-time or monthly frequency, and automatic or manual payment mode. The horizon ends on the last day of the second upcoming calendar month. Monthly installments retain the chosen day, adjusting for shorter months. Review the dates and total before saving. Plans debit the wallet only when due, with sufficient balance and valid recipients; failed plans retain an explanation and do not deduct funds. Cancel pending plans individually. Four labeled demonstration installments are added across the next two months.
 
-Due automatic installments run when their owner opens an eligible app page; the Financial Health page stays read-only. For processing even while nobody is browsing, run the separate demo worker:
+The judge launcher executes no payments on page visits. Use **Process Due Auto Pay** for an explicit due-only pass, or run the durable scheduler in a separate terminal against the same isolated judge database:
 
 ```powershell
-.venv\Scripts\python.exe -m flask --app run run-due-payments --watch --interval 30
+.venv\Scripts\python.exe -m flask --app scripts.judge_demo:create_judge_app durable-worker --watch --interval 5 --batch-size 20
 ```
 
-For one pass, omit `--watch`. The page's **Process Due Auto Pay** button uses the same executor. Each installment is claimed and recorded atomically, preventing duplicate processing. `flask --app run seed-demo-operations` idempotently adds missing fixtures.
+For one batch, omit `--watch`. Each installment is claimed and recorded atomically, preventing duplicate processing. Business rejections such as insufficient funds remain failed for review; unexpected worker interruptions use bounded persisted retries. The legacy development entry point also supports request-driven execution, except on the read-only Financial Health page. Production uses supervised durable workers.
 
 ## Profile and app assistant
 
 Profile groups your account overview and editable full name, nickname, email, address and picture. Upload JPG, PNG, WebP, GIF, BMP, TIFF, ICO, AVIF, HEIC/HEIF, JPEG2000, QOI, PSD, TGA or PPM up to 5 MB and 16 megapixels. Choose an output size of 128, 256, 512 or 1024 pixels, fit the full picture or crop a square with horizontal/vertical positioning. The server validates and resizes the picture, uses the first animation frame, corrects EXIF orientation, strips metadata and stores a private JPEG. Some browsers cannot preview HEIC; server decoding still works after installing requirements. SVG and camera RAW formats are not supported.
 
-The assistant beside Notifications explains services, reports, recipient checks, fees and Auto Pay, and summarizes the signed-in user's balance and spending. A local app guide works without a key. To enable the hosted AI, copy `.env.example` to `.env`, set `OPENAI_API_KEY` and optionally `ASSISTANT_MODEL`, then restart. It uses the [OpenAI Responses API](https://developers.openai.com/api/docs/guides/text) with `store: false`. Questions, bounded chat history and account aggregates are sent to OpenAI; profile fields, recipient names, account numbers and transaction notes are excluded from the account snapshot. The assistant never executes payments. A provider failure falls back to the local guide.
+The assistant beside Notifications explains services, reports, recipient checks, fees and Auto Pay, and summarizes the signed-in user's balance and spending. The judge launcher uses the local guide. In a separately configured environment, hosted AI requires both provider configuration and explicit owner consent under **Privacy settings**. The disclosure explains the redacted question, bounded history and minimal account aggregates sent to the provider; profile fields, recipient names, account numbers and transaction notes are excluded from the snapshot. Sensitive text is filtered before storage and outbound calls. The conversation holds at most eight messages and expires after seven days of inactivity. Clear/erase invalidates in-flight replies too. The assistant never executes payments; provider failure falls back locally. See [responsible AI](docs/RESPONSIBLE_AI.md) for boundaries and evaluation limits.
 
 Operation screens have logical Back links. Dashboard service links return to the Dashboard with its selected day filter, including education payments. Sidebar overview pages hide the link, and returning never depends on browser history that could lead to the login screen.
 

@@ -1,0 +1,69 @@
+{
+  "csrf_enabled": true,
+  "deliberately_aborted_recipient_lookup_console_notices": 4,
+  "errors": 0,
+  "export_formats": {
+    "json": 4,
+    "pdf": 12,
+    "xlsx": 4
+  },
+  "file_exports": 20,
+  "fixture": {
+    "dataset": {
+      "age_days": 0,
+      "days": 120,
+      "end_date": "2026-10-06",
+      "frozen_on_restart": true,
+      "generator": "household-ledger-v2",
+      "start_date": "2026-06-09",
+      "synthetic": true
+    },
+    "kind": "new_isolated_rich_synthetic_judge_fixture",
+    "ledger_reconciled": true,
+    "model": {
+      "algorithm": "random_forest_regressor",
+      "artifact_approved": true,
+      "forecast_available": true,
+      "forecast_unavailable_reason": null,
+      "version": "1.0.0"
+    }
+  },
+  "flow_assertions": 64,
+  "flow_cases": 4,
+  "hosted_ai_disabled": true,
+  "languages": [
+    "bn",
+    "en"
+  ],
+  "layout_checks": 52,
+  "network_local_only": true,
+  "overflow_errors": 0,
+  "page_or_csp_errors": 0,
+  "preserved_main_and_judge_files_unchanged": true,
+  "real_customer_evidence_claimed": false,
+  "synthetic_evaluation_exports": 4,
+  "trusted_sessions_enabled": true,
+  "verified_flow_types": [
+    "explicit synthetic OTP sign-in",
+    "focused two-task dashboard with populated 30-day history",
+    "honest empty Today with access to earlier activity",
+    "weekly commitments, calibrated local forecast and matched ledger",
+    "blocked recipient feedback prevents submission",
+    "recipient lookup announces loading then verified account",
+    "failed lookup gives useful connection/server-validation explanation",
+    "monthly review and CSRF save create future plans without debit",
+    "saved instruction summary and printable PDF",
+    "early payment request reports not due and leaves balance unchanged",
+    "cancellation confirms no debit",
+    "existing owner receipt and printable PDF",
+    "filtered chart report with Excel and PDF exports",
+    "empty filtered report offers reset and clear explanation",
+    "privacy purposes start separately disabled",
+    "local bilingual guidance works without hosted consent or provider"
+  ],
+  "viewports": [
+    390,
+    1440
+  ],
+  "wallet_unchanged_in_each_case": true
+}

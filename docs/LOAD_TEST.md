@@ -43,7 +43,11 @@ Measured on 7 October 2026 in the local Windows/AMD64 environment, Python
 | SQLite | 240 / 8 | 120 × 200; 120 × 201 | 16.80 req/s | 242.58 ms | 1,635.97 ms | 2,767.27 ms | 10 / 10 passed |
 | PostgreSQL 18.6 | 240 / 8 | 120 × 200; 120 × 201 | 55.12 req/s | 115.68 ms | 184.65 ms | 1,005.68 ms | 10 / 10 passed |
 
-Sources: `tmp/infrastructure-qa/load-sqlite.json` and `load-postgres.json`. These timings are one measured
+Reviewed sources: [SQLite report](../output/qa/submission/load-sqlite.json) and
+[PostgreSQL report](../output/qa/submission/load-postgres.json), with source SHA256s
+and recording dates in the [evidence manifest](../output/qa/submission/manifest.json).
+Their original local outputs were under ignored `tmp/infrastructure-qa`.
+These timings are one measured
 run, not a capacity guarantee. Repeat on the intended deployment hardware and
 report the complete workload and quota settings when comparing results.
 
@@ -97,8 +101,11 @@ HTTP workload invariants. The temporary cluster was stopped and removed.
 Portable archive SHA256:
 `e2246ba91d22345bc3d017586c09ede52d9df180b1eeb480f050445f1cad84e2`.
 
-Artifacts are `postgres-qa.json`, `postgres-migration.log`, `postgres-tests.log`
-and `load-postgres.json` under `tmp/infrastructure-qa`. The default unit suite
+The checked-in [PostgreSQL QA report](../output/qa/submission/postgres-qa.json)
+and [HTTP workload report](../output/qa/submission/load-postgres.json) retain
+content-free measurements and binary provenance. Original JSON and raw logs
+remain under ignored `tmp/infrastructure-qa`; raw logs and downloaded binaries
+are excluded from the judge bundle. The default unit suite
 skips `tests.test_postgres` when its isolated fixture URL is absent; a skipped
 test must never be reported as PostgreSQL validation.
 

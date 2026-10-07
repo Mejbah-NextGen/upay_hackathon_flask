@@ -1,0 +1,37 @@
+{
+  "checked_pages": [
+    "/",
+    "/insights",
+    "/notifications",
+    "/payments",
+    "/payments/pay-bill?category=gas",
+    "/payments/pay-later",
+    "/payments/recharge",
+    "/payments/savings",
+    "/profile/",
+    "/schedules",
+    "/wallet/add-money",
+    "/wallet/cash-out",
+    "/wallet/cash-out?channel=ATM",
+    "/wallet/report?days=120",
+    "/wallet/send-money",
+    "/wallet/transfer-money",
+    "/wallet/transfer-money?channel=VISA"
+  ],
+  "errors": 0,
+  "languages": [
+    "bn",
+    "en"
+  ],
+  "layout_checks": 170,
+  "scope": "Automated Chrome on isolated synthetic data; not human usability research",
+  "source_contains_no_failing_checks": true,
+  "verified_flows": [],
+  "viewports": [
+    320,
+    375,
+    768,
+    1024,
+    1440
+  ]
+}

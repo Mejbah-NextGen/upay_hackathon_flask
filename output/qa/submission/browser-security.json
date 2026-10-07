@@ -1,0 +1,33 @@
+{
+  "csrf_enabled": true,
+  "database": "isolated_in_memory",
+  "expected_http_400_resource_console_messages": 4,
+  "flow_assertions": 48,
+  "flow_cases": 4,
+  "hosted_network_disabled": true,
+  "languages": [
+    "bn",
+    "en"
+  ],
+  "layout_checks": 20,
+  "page_or_csp_errors": 0,
+  "scope": "Isolated synthetic Chrome EN/BN; expected negative consent probes cause four HTTP 400 console resource notices; not penetration testing",
+  "verified_flow_types": [
+    "CSRF-protected login and browser trust",
+    "local guidance without hosted provider",
+    "prompt injection refusal",
+    "required checkbox and unchecked server rejection",
+    "explicit hosted consent",
+    "separate research consent",
+    "owner-only account/research downloads",
+    "hosted revocation erases own chat",
+    "AI erasure receipt preserves wallet",
+    "owner-only device list",
+    "current browser revocation",
+    "revoked cookie replay denied"
+  ],
+  "viewports": [
+    390,
+    1440
+  ]
+}

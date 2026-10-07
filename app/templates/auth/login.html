@@ -4,22 +4,23 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <img class="auth-logo" src="{{ url_for('static', filename='img/logo.svg') }}" alt="logo">
-    <span class="eyebrow">AI Hackathon Demo</span>
+    {% set demo_login = config.DEMO_OTP_ALLOWED and not config.SECURITY_PRODUCTION %}
+    <span class="eyebrow">{{ 'AI Hackathon Demo' if demo_login else 'Secure sign in' }}</span>
     <h1>Welcome to {{ app_name }}</h1>
     <p>Sign in with your mobile number to open your wallet dashboard.</p>
     <form method="post" class="form-stack">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Mobile Number<input name="mobile" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('mobile', '01329097775') }}" required></label>
+      <label>Mobile Number<input name="mobile" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="01XXXXXXXXX" value="{{ request.form.get('mobile', '01329097775' if demo_login else '') }}" required></label>
       <button class="btn btn-primary btn-block" type="submit">Continue</button>
     </form>
     <div class="divider"><span>or</span></div>
     <a class="btn btn-soft btn-block" href="{{ url_for('auth.signup') }}">Create account</a>
-    <p class="demo-note">Demo user: <strong>01329097775</strong></p>
+    {% if demo_login %}<p class="demo-note">Demo user: <strong>01329097775</strong></p>{% endif %}
   </div>
   <div class="auth-visual">
     <span class="eyebrow dark">Responsive Fintech Experience</span>
     <h2>One web app.<br>Desktop + mobile.</h2>
-    <p>Wallet, transfers, payments, recharge, history and profile — organized using a clean Flask architecture.</p>
+    <p>Plan your week, manage recurring payments and review your wallet activity.</p>
     <div class="mock-phone"><div class="phone-notch"></div><div class="phone-banner"></div><div class="phone-card"></div><div class="phone-grid"><i></i><i></i><i></i><i></i></div></div>
   </div>
 </div>

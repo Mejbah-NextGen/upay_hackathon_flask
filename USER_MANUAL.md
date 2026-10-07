@@ -1,10 +1,10 @@
 # UpayX user manual
 
-**Version reviewed: 2 October 2026 · local hackathon prototype · Bangladesh time (UTC+6)**
+**Version reviewed: 7 October 2026 · Phase 2 local hackathon prototype · Bangladesh time (UTC+6)**
 
 This manual covers the implemented screens, demo money rules and project maintenance commands. All supplied account activity is synthetic. Wallet success messages mean the local database was updated; no real bank, mobile operator, biller, lender or cash machine receives an instruction.
 
-For a feature comparison and presentation script, see [README_LEGENDARY.md](README_LEGENDARY.md). For the original project overview, see [README.md](README.md). Example prices and recipients are also listed in [DEMO_DATA.txt](DEMO_DATA.txt).
+For the submission walkthrough, login, verification and every database table, see [phase_2.md](phase_2.md). The [original feedback](docs/JUDGE_FEEDBACK.md) is preserved. For a feature comparison, see [README_LEGENDARY.md](README_LEGENDARY.md); for the project overview, see [README.md](README.md). Example prices and recipients are listed in [DEMO_DATA.txt](DEMO_DATA.txt).
 
 ## 1. Start the project
 
@@ -12,14 +12,13 @@ In PowerShell, from the project directory:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python run.py
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe scripts/judge_demo.py
 ```
 
-If `.venv` already exists, activate it and install the requirements. Open `http://127.0.0.1:5000`. Keep the terminal running while using the app. Press `Ctrl+C` in that terminal to stop the server. Restart after changing environment settings or dependencies.
+If `.venv` already exists, install the requirements with its Python executable. Open `http://127.0.0.1:5000/?days=30`. Keep the terminal running while using the app. Press `Ctrl+C` in that terminal to stop the server. Restart after changing dependencies. Activation is optional.
 
-The default SQLite file is `instance/upay_hackathon.db`. `DATABASE_URL` can select another database; maintenance commands must target the intended local file. `APP_NAME`, `SECRET_KEY` and `DEMO_OTP` are configurable in `.env`; use `.env.example` as the configuration reference.
+The judge launcher uses `instance/judge-demo.db`, a separate synthetic 120-day database created once and reused on restart. It ignores production/provider environment settings and does not modify the preserved main database. The legacy `python run.py` uses `instance/upay_hackathon.db` by default; `DATABASE_URL` can select another database for that entry point. Maintenance commands must target the intended file. See `.env.example` and [phase_2.md](phase_2.md) for configuration and deployment boundaries.
 
 ### Demo accounts and references
 
@@ -206,9 +205,9 @@ Open **Auto Pay** to create **Send Money**, **Mobile Recharge** or **Bill Paymen
 
 For a 2 October 2026 session, the scheduling window is 3 October–31 December 2026. Monthly repetition stays within the displayed window. A chosen 31st adjusts to the last day in a shorter month and returns to the 31st when available.
 
-Saving a plan does not reserve or deduct wallet funds. Installments become due at midnight Bangladesh time. Automatic due installments run when their owner visits app pages other than the read-only Financial Health Center, when **Process Due Auto Pay** is selected, or when the separate demo worker runs. **Pay if due** manually processes an eligible due installment; it rejects future dates. **Cancel** is available for scheduled and failed installments. To change a plan, cancel its pending installments and create the desired replacement.
+Saving a plan does not deduct wallet funds. Installments become due at midnight Bangladesh time. In the judge launcher, **Process Due Auto Pay** or the separate durable worker executes automatic due installments; opening a page executes no payment. The legacy development configuration can run them on eligible page visits, except the read-only Financial Health Center. **Pay if due** manually processes an eligible due installment and rejects future dates. **Cancel** is available for scheduled and failed installments. To change a plan, cancel its pending installments and create the replacement.
 
-A successful installment becomes **Completed** and links to its payment receipt. A failure shows its explanation and does not deduct balance. A failed installment is not automatically retried by the current due-only executor; cancel/recreate after correcting the cause. **Open Report** from Auto Pay filters to automatic plans and their linked transactions.
+A successful installment becomes **Completed** and links to its payment receipt. A business rejection, such as insufficient balance or an invalid recipient, shows its explanation and deducts no balance; correct the cause and cancel/recreate the plan. Unexpected worker interruptions use bounded, persisted exponential retries; exhausted retries require review. **Open Report** from Auto Pay filters to automatic plans and their linked transactions. See [deployment](docs/DEPLOYMENT.md) for durable processing.
 
 ### Run the local worker
 
@@ -308,13 +307,13 @@ Open the assistant icon beside Notifications or `/assistant`. Select a suggested
 - “How do I set up Auto Pay?”
 - “How do I export my report?”
 
-The local guide works without an AI connection and recognizes selected English, Bangla and romanized-Bangla questions. Follow its action links to service screens. Its bounded own-account conversation persists until **Clear chat** is selected; clearing removes the stored conversation as well as the visible chat. The assistant provides guidance and cannot execute payments.
+The local guide works without an AI connection and recognizes selected English, Bangla and romanized-Bangla questions. Follow its action links to service screens. Its own-account conversation holds at most eight messages and expires after seven days of inactivity. **Clear chat** removes the stored conversation and invalidates in-flight replies. The assistant provides guidance and cannot execute payments.
 
 ### Optional hosted AI
 
-In `.env`, configure `OPENAI_API_KEY` and optionally `ASSISTANT_MODEL`, then restart the app. The page displays whether it is using hosted AI or the local guide. Hosted questions, bounded chat history and account aggregates go to the configured provider. Database profile fields, recipient names/numbers and transaction notes are excluded from its account snapshot. Personal information typed into a question can still be sent as question text, so use demo information. Provider failures fall back to local guidance.
+The judge launcher keeps hosted AI disabled. In a separate environment, configure the provider and model, restart, then give explicit owner consent under **Privacy settings** after reading its disclosure. Hosted AI receives the redacted question, bounded history and minimal account aggregates. Profile fields, recipient names/numbers and transaction notes are excluded from the snapshot. Redaction has limits; keep demonstration questions synthetic. The page identifies local versus hosted guidance. Consent revocation prevents in-flight replies from being stored; provider failures fall back locally.
 
-The account conversation is bounded to recent messages. The assistant permits twelve requests per minute per account in the current application process. If rate-limited, wait a minute. More demonstration prompts are in [AI_ASSISTANT_PROMPTS.txt](AI_ASSISTANT_PROMPTS.txt).
+The assistant permits twelve requests per minute per account using a shared database quota across application processes. If rate-limited, wait for the next quota window. Privacy settings provide separate hosted-AI and research-export consent, an own-account data export and erasure receipt. Financial receipts remain financial records; a content-free conversation generation counter prevents erased replies from returning. More prompts are in [AI_ASSISTANT_PROMPTS.txt](AI_ASSISTANT_PROMPTS.txt).
 
 ## 18. Notifications, Profile and Settings
 
@@ -332,7 +331,7 @@ The refreshed demonstration history covers **5 June–2 October 2026 inclusive**
 | --- | --- |
 | Users | 4 |
 | Transaction rows | 345 across wallets; 208 belong to the main household. |
-| Database tables / total stored rows | 18 / 913. |
+| Original 2 October database tables / total stored rows | 18 / 913; current code defines 37 application tables. |
 | Main opening / ending balance | BDT 12,450.00 / BDT 108,212.50. |
 | Saved goals / Pay Later purchases | 2 savings goals; 2 purchases, one repaid and one pending for BDT 840. |
 | Future scheduled installments | 5: one manual DESCO bill due 5 October, and four November/December plans. |
@@ -340,7 +339,7 @@ The refreshed demonstration history covers **5 June–2 October 2026 inclusive**
 
 All four generated wallets have independent opening anchors and reconcile to their successful ledger activity. Counts and balances above describe the initial reset output, not a wallet after subsequent use. Startup retains this anchored history; it does not append a new rolling 120-day history each day. Select explicit dates to review the fixed window after its end date.
 
-The project's filtered wallet report is for the signed-in account. A complete database documentation PDF is an administrator artifact: it describes every table and stored row, including app state outside one wallet's report. Keep these two outputs distinct when reviewing totals or account ownership.
+The project's filtered wallet report is for the signed-in account. The existing 110-page database PDF documents the original synthetic snapshot and predates the new control tables. The [current database catalog](docs/DATABASE_CATALOG.md) and [phase_2.md](phase_2.md) document all 37 application tables and read-only inventories. A full-row administrator export can contain security state and must not be shared as a public submission artifact.
 
 ### Regenerate the complete database PDF
 
@@ -352,7 +351,7 @@ python scripts/export_database_pdf.py
 
 The default artifact is [UPAYX_DATABASE_REPORT.pdf](output/pdf/UPAYX_DATABASE_REPORT.pdf). It is generated from a consistent, read-only SQLite snapshot and includes a table directory, schemas, formatted data tables and empty-table sections. Wide tables are split into column groups with repeated row numbers so corresponding cells can be located. Stored timestamps are shown as raw UTC database values; the cover labels Bangladesh-time context.
 
-For exact machine-readable values, the PDF embeds `database_snapshot.json` as an attachment, identified by a SHA-256 checksum. Open the PDF's attachments panel in a compatible viewer to extract it. This documents all current database tables/rows/columns; it does not expose a cross-user download route in the web app. Regenerate after changing data if you need a current administrator snapshot.
+For exact machine-readable values, the historical PDF embeds `database_snapshot.json` as an attachment, identified by a SHA-256 checksum. Open its attachments panel to extract it. The tool has no cross-user web download route. For judge review of the current schema/counts, prefer the read-only inventory script; regenerating a full-row export after authentication/API activity could expose private operational data.
 
 The regular startup seeder does not mean “reset everything.” Use the explicit reset tool when intentionally replacing the project dataset. Stop running app/worker processes before a reset and restart afterward so sessions and cached account objects are refreshed. Backup files preserve old database contents and must be handled separately from the current demo.
 

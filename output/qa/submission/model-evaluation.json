@@ -1,0 +1,21 @@
+{
+  "baselines": {
+    "last_week": {
+      "mae_bdt": 2579.1641,
+      "rmse_bdt": 4270.2315,
+      "sample_count": 300
+    },
+    "trailing_28_day_mean": {
+      "mae_bdt": 2200.7637,
+      "rmse_bdt": 3894.3859,
+      "sample_count": 300
+    }
+  },
+  "model": {
+    "mae_bdt": 2130.1645,
+    "rmse_bdt": 3588.8999,
+    "sample_count": 300
+  },
+  "test_coverage": 0.94,
+  "verified": true
+}

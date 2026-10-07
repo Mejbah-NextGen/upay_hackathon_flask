@@ -29,7 +29,7 @@ BANGLA = {
     "Your services and wallet activity in one place.": "আপনার সব সেবা ও ওয়ালেটের কার্যক্রম এক জায়গায়।",
     "Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.": "পেমেন্টে সফল বিল ও রিচার্জ দেখানো হয়। খরচে সফল পেমেন্ট, ট্রান্সফার, ক্যাশ আউট ও ফি অন্তর্ভুক্ত। ব্যালেন্স সবসময় বর্তমান পরিমাণ দেখায়।",
     "Recent Transactions": "সাম্প্রতিক লেনদেন", "Wallet Demo": "ডেমো ওয়ালেট", "Everyday payments, together": "প্রতিদিনের সব পেমেন্ট একসাথে",
-    "Review every payment, download receipts and plan the next two months from your Report.": "প্রতিটি পেমেন্ট দেখুন, রসিদ ডাউনলোড করুন এবং পরবর্তী দুই মাসের পরিকল্পনা করুন।",
+    "Review every payment, download receipts and plan upcoming payments from your Report.": "প্রতিটি পেমেন্ট দেখুন, রসিদ ডাউনলোড করুন এবং আসন্ন পেমেন্টের পরিকল্পনা করুন।",
     "Review Report": "রিপোর্ট দেখুন", "Wallet": "ওয়ালেট", "Wallet transaction": "ওয়ালেট লেনদেন", "Wallet summary": "ওয়ালেটের সারসংক্ষেপ",
     "Amount": "পরিমাণ", "Amount (BDT)": "পরিমাণ (টাকা)", "Amount (৳)": "পরিমাণ (৳)", "Fee": "ফি", "Total deduction": "মোট কর্তন",
     "Remaining balance": "অবশিষ্ট ব্যালেন্স", "Available balance": "ব্যবহারযোগ্য ব্যালেন্স", "Balance after cash out": "ক্যাশ আউটের পর ব্যালেন্স",
@@ -171,6 +171,12 @@ def translate(text, language="bn"):
     match = re.fullmatch(r"(Mark all as read) \((\d+)\)", stripped)
     if match:
         return f"{BANGLA[match[1]]} ({match[2]})"
+    match = re.fullmatch(r"Plan payments through (\d{2} [A-Za-z]{3,9} \d{4})\. Each installment appears in Report\.", stripped)
+    if match:
+        return f"{match[1]} পর্যন্ত পেমেন্ট পরিকল্পনা করুন। প্রতিটি কিস্তি রিপোর্টে দেখা যাবে।"
+    match = re.fullmatch(r"Monthly through (\d{2} [A-Za-z]{3} \d{4})", stripped)
+    if match:
+        return f"{match[1]} পর্যন্ত প্রতি মাসে"
     match = re.fullmatch(r"Last (\d+) days(?: activity)?", stripped)
     if match:
         return f"গত {match[1]} দিনের কার্যক্রম"

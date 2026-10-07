@@ -1,0 +1,47 @@
+{
+  "all_invariants_passed": true,
+  "baseline_synthetic_history_receipts": 28,
+  "concurrency": 8,
+  "database": "postgresql",
+  "duration_seconds": 4.354,
+  "expected_plans": 61,
+  "forecast_inference_reads": 60,
+  "invariants": {
+    "all_financial_health_reads_run_available_forecast": true,
+    "all_future_plans_pending": true,
+    "all_requests_succeeded": true,
+    "no_http_5xx_or_transport_errors": true,
+    "no_new_early_ledger_transactions": true,
+    "one_idempotency_record_per_unique_key": true,
+    "one_plan_per_unique_key": true,
+    "recipient_not_credited_before_due_date": true,
+    "sender_not_debited_before_due_date": true,
+    "shared_key_created_one_schedule": true
+  },
+  "latency_ms": {
+    "p50": 115.68,
+    "p95": 184.65,
+    "p99": 1005.68
+  },
+  "observed_plans": 61,
+  "platform": {
+    "cpu_count": 12,
+    "machine": "AMD64",
+    "os": "Windows",
+    "python": "3.12.10"
+  },
+  "rate_limit": {
+    "api_token_requests": 10000,
+    "purpose": "isolated measurement workload; production defaults unchanged",
+    "window_seconds": 60
+  },
+  "request_count": 240,
+  "schema_version": 1,
+  "scope": "one local app instance, one synthetic user, simulated future plans; not production capacity certification",
+  "status_counts": {
+    "200": 120,
+    "201": 120
+  },
+  "throughput_requests_per_second": 55.12,
+  "workload": "real loopback threaded HTTP: 25% balance GET, 25% financial-health GET, 25% duplicate-key future-plan POST, 25% fresh-key future-plan POST"
+}

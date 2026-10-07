@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 .env
 instance/*.db
+instance/**/judge-*.db
+instance/**/judge-*.db.runtime.json
+instance/**/judge-*.db.init.lock/
 instance/backups/
 .pytest_cache/
 .tmp/
@@ -11,5 +14,6 @@ artifacts/
 tmp/export-qa/
 tmp/browser-qa/
 tmp/feedback-qa/
+tmp/submission-qa/
 tmp/pdfs/
 .DS_Store

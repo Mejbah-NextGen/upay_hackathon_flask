@@ -92,6 +92,12 @@ class SecurityTests(AppTestCase):
     def test_production_requires_server_registry_and_real_delivery(self):
         self.app.config.update(SECURITY_PRODUCTION=True, REQUIRE_TRUSTED_SESSIONS=True,
             DEMO_OTP_ALLOWED=False, DEMO_BALANCES_ALLOWED=False, OTP_DELIVERY_ADAPTER=None)
+        login_page = self.client.get("/auth/login").get_data(as_text=True)
+        self.assertNotIn("01329097775", login_page)
+        self.assertNotIn("AI Hackathon Demo", login_page)
+        signup_page = self.client.get("/auth/signup").get_data(as_text=True)
+        self.assertIn("New accounts start with zero balance.", signup_page)
+        self.assertNotIn("New accounts receive demo balance", signup_page)
         self.login()
         self.assertEqual(self.client.get("/").status_code, 302)
         response = self.client.post("/auth/login", data={"mobile": self.user.mobile})

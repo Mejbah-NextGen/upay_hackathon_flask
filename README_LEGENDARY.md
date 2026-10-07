@@ -2,7 +2,7 @@
 
 **Hackathon feature guide and judge walkthrough · reviewed 2 October 2026 · Bangladesh time**
 
-**Feedback update · 7 October 2026:** the product now prioritizes weekly planning and recurring payments. Financial Health includes an offline-trained random forest and published synthetic holdout evaluation; the consented pilot compares forecast-supported planning with recorded-commitment planning. Critical payment paths have concurrent database and interruption tests. Use the [updated feedback walkthrough](docs/FEEDBACK_1_4.md), [model card](docs/MODEL_CARD.md), [pilot protocol](docs/PILOT_PROTOCOL.md) and [reliability evidence](docs/RELIABILITY.md) for these additions. The source comparison and initial dataset snapshot below retain their original review date.
+**Phase 2 · 7 October 2026:** start with [phase_2.md](phase_2.md) for the isolated judge demo, login, full database catalog and evidence. The product prioritizes weekly planning and recurring payments, with a learned forecast, consented pilot measurement, concurrent/failure verification, scoped APIs, PostgreSQL migrations, durable workers and privacy/security controls. See [feedback 1–4](docs/FEEDBACK_1_4.md) and [feedback 5–6](docs/FEEDBACK_5_6.md). The [original comments and scores](docs/JUDGE_FEEDBACK.md) remain unchanged; the seventh screenshot is pending. The source comparison and initial dataset snapshot below retain their original review date.
 
 UpayX is an independently built Flask wallet prototype inspired by Bangladesh's upay experience. Its strongest story is a connected journey: understand your household's activity, plan upcoming commitments, complete a local demo payment, and trace the result into a chart, receipt and export. It is not affiliated with upay or UCB Fintech.
 
@@ -47,7 +47,7 @@ This creates a visible chain from a claim such as “education is our largest sp
 
 ### A helpful assistant with controlled authority
 
-The assistant answers app questions, explains fees and routes users to the right form. It summarizes the signed-in account and keeps a bounded conversation. It works as a local guide without an API key; optional hosted AI sends questions, bounded chat history and account aggregates to the configured provider. Database profile fields, recipient details, references and transaction notes are excluded from the account snapshot. Text typed into a question remains part of that question.
+The assistant answers app questions, explains fees and routes users to the right form. The isolated judge demo uses local guidance. Hosted AI in a separate environment requires explicit owner consent after disclosure and sends redacted questions, bounded history and minimal aggregates. Profile fields, recipient details, references and transaction notes are excluded from the account snapshot. Conversation history is limited to eight messages and seven days of inactivity; privacy settings support export, erasure and independent research consent.
 
 The assistant cannot authorize or execute payments. The user reviews and submits the payment form. Demonstrate an education-fee question, follow its action, and open the resulting invoice receipt. Example prompts are in [AI_ASSISTANT_PROMPTS.txt](AI_ASSISTANT_PROMPTS.txt).
 
@@ -123,7 +123,7 @@ For an intentional reset, stop the local app/worker and run `python scripts/rese
 
 The initial generated snapshot has **4 users, 345 transaction rows (208 for the main household), 18 tables and 913 total stored rows**. Its main wallet opens at BDT 12,450.00 and reconciles to BDT 108,212.50. The generated complete database PDF has 110 pages. These describe the initial snapshot; new payments, chat, profile edits and notification actions can change current records or counts.
 
-The project remains a local prototype. Production work would require authorized identity verification, OTP/device controls, payment-provider integrations, secure operations, applicable transaction controls, provider settlement reconciliation and formal security testing. Reported demo fees and the savings/Pay Later estimates are code examples, not official upay prices or financial offers.
+The project remains a prototype with implemented one-use OTP boundaries, browser session revocation, scoped APIs, quotas, signed audit, field encryption, review signals and provider recovery. Contracted identity/SMS/payment connections, managed production operations, provider settlement validation and independent security assessment remain external work. Reported demo fees and savings/Pay Later estimates are code examples, not official upay prices or financial offers.
 
 ## 7. Engineering evidence
 

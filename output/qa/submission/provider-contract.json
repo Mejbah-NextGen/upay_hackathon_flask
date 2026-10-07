@@ -1,0 +1,25 @@
+{
+  "demo_wallet_unchanged": true,
+  "dropped_response_outcome": "UNCERTAIN",
+  "environment": "independent_reference_sandbox",
+  "final_status": "SUCCEEDED",
+  "first_worker": {
+    "claimed": 1,
+    "completed": 0,
+    "retrying": 1,
+    "review_required": 0
+  },
+  "idempotent_replay": true,
+  "independent_provider_charges": 1,
+  "observed_at": "2026-10-07T04:05:22.068762+00:00",
+  "payload_conflict_status": 409,
+  "real_upay_connected": false,
+  "recovery_worker": {
+    "claimed": 1,
+    "completed": 1,
+    "retrying": 0,
+    "review_required": 0
+  },
+  "submit_status": 202,
+  "transport": "actual_loopback_HTTP"
+}

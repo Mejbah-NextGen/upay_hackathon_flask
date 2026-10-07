@@ -1,0 +1,30 @@
+{
+  "checked_pages": [
+    "/",
+    "/insights",
+    "/pilot",
+    "/schedules"
+  ],
+  "errors": 0,
+  "languages": [
+    "bn",
+    "en"
+  ],
+  "layout_checks": 32,
+  "scope": "Automated Chrome on isolated synthetic data; not human usability research",
+  "source_contains_no_failing_checks": true,
+  "verified_flows": [
+    "CSRF-protected login",
+    "consented demo enrolment",
+    "controlled model exposure",
+    "planning acknowledgement and refresh",
+    "research response",
+    "recurring plan without debit"
+  ],
+  "viewports": [
+    320,
+    375,
+    768,
+    1440
+  ]
+}
