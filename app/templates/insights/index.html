@@ -12,6 +12,19 @@
 {% if health.unknown_fee_count %}<div class="health-notice health-attention"><strong>Incomplete fee estimate</strong><p>An unsupported scheduled payment was reserved at its principal amount. Review its fees before spending.</p></div>{% endif %}
 <p class="health-scope">Planning estimate from this demo wallet only. Unrecorded expenses and future fees are not included. This page never moves money or blocks payments.</p>
 
+{% if forecast is not none %}{% include 'insights/_forecast.html' %}{% endif %}
+{% if pilot.enrolled %}
+<section class="section-card health-entry" aria-labelledby="planningReviewTitle">
+  <div class="section-head"><h2 id="planningReviewTitle">Review your weekly plan</h2><a href="{{ url_for('pilot.index') }}">Pilot & Feedback</a></div>
+  <form method="post" action="{{ url_for('pilot.plan_reviewed') }}" class="form-stack planning-review">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label><input type="checkbox" name="acknowledge" value="1" required> I reviewed my recorded commitments and know what is due this week.</label>
+    <button class="btn btn-soft" type="submit">Record planning review</button>
+  </form>
+  <p class="health-explanation">This records a self-reported task outcome for the pilot. It does not confirm affordability or change any payment.</p>
+</section>
+{% endif %}
+
 <div class="health-two-columns">
   <section class="section-card" aria-labelledby="healthCommitmentsTitle">
     <div class="section-head"><div><span class="eyebrow">Reserve before spending</span><h2 id="healthCommitmentsTitle">Upcoming commitments</h2></div><a href="{{ url_for('operations.schedules') }}">Manage Auto Pay</a></div>

@@ -9,5 +9,6 @@ instance/backups/
 artifacts/
 tmp/export-qa/
 tmp/browser-qa/
+tmp/feedback-qa/
 tmp/pdfs/
 .DS_Store

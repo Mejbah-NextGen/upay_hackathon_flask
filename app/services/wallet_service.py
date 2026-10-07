@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from functools import wraps
 import re
 from uuid import uuid4
 
@@ -14,6 +15,19 @@ from app.services.wallet_catalog import (
     ATM_INCREMENT, ATM_LIMIT, BANK_TRANSFER_FEES, CASH_OUT_RATES,
     DEMO_ATMS, DEMO_BANKS, VISA_TRANSFER_RATE,
 )
+
+
+def atomic_wallet_operation(operation):
+    """Standalone mutations own rollback; composed mutations use their caller's transaction."""
+    @wraps(operation)
+    def execute(self, *args, **kwargs):
+        try:
+            return operation(self, *args, **kwargs)
+        except Exception:
+            if kwargs.get("commit", True):
+                db.session.rollback()
+            raise
+    return execute
 
 
 class WalletService:
@@ -66,11 +80,19 @@ class WalletService:
 
     @staticmethod
     def _finish(commit):
+        # Observations are part of the same unit of work as the ledger. Capture
+        # pending rows before flush assigns IDs; replayed receipts add no event.
+        from app.services.pilot_service import record_transaction
+        pending = [row for row in db.session.new if isinstance(row, Transaction)]
+        db.session.flush()
+        for transaction in pending:
+            record_transaction(transaction)
         if commit:
             db.session.commit()
         else:
             db.session.flush()
 
+    @atomic_wallet_operation
     def send_money(self, user_id: int, recipient_mobile: str, amount_raw, note: str = "", *, commit=True):
         sender = self.get_user(user_id)
         recipient_mobile = normalize_mobile(recipient_mobile)
@@ -99,8 +121,6 @@ class WalletService:
             amount=amount,
             note=note or None,
         )
-        db.session.add(outgoing)
-
         self._credit(recipient.id, amount)
         incoming = Transaction(
             user_id=recipient.id,
@@ -112,11 +132,14 @@ class WalletService:
             amount=amount,
             note=note or None,
         )
-        db.session.add(incoming)
+        # Add both ledger entries after balance updates so autoflush cannot
+        # remove the outgoing entry from the pending observation batch.
+        db.session.add_all([outgoing, incoming])
 
         self._finish(commit)
         return outgoing
 
+    @atomic_wallet_operation
     def add_money(self, user_id: int, source: str, amount_raw, *, bank="", account_number="", card_number="", holder_name="", agent_number="", commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)
@@ -214,6 +237,7 @@ class WalletService:
         return {"amount": amount, "fee": fee, "total": total, "balance": balance,
                 "remaining": balance - total, "can_submit": balance >= total}
 
+    @atomic_wallet_operation
     def cash_out(self, user_id: int, agent_number: str, amount_raw, *, channel="AGENT", atm_location="", commit=True):
         user = self.get_user(user_id)
         channel = self._cash_out_channel(channel)
@@ -262,6 +286,7 @@ class WalletService:
             raise ValidationError("The demo Visa card number did not pass its checksum.")
         return number
 
+    @atomic_wallet_operation
     def transfer_money(self, user_id, channel, amount_raw, *, bank="", account_number="", card_number="", holder_name="", rail="NPSB", note="", commit=True):
         user = self.get_user(user_id)
         channel = str(channel or "").strip().upper()
@@ -301,6 +326,7 @@ class WalletService:
         self._finish(commit)
         return transaction
 
+    @atomic_wallet_operation
     def debit_for_payment(self, user_id: int, *, kind: str, title: str, counterparty: str, amount_raw, note=None, commit=True):
         user = self.get_user(user_id)
         amount = self.parse_amount(amount_raw)

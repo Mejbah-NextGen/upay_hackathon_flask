@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Planning research pilot · {{ app_name }}{% endblock %}
+{% block head_extra %}<style>.form-stack .pilot-consent{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:12px}.form-stack .pilot-consent input{width:20px;height:20px;padding:0;margin:2px 0;accent-color:var(--blue)}.pilot-evidence .data-table{min-width:0;table-layout:fixed}.pilot-evidence th,.pilot-evidence td{overflow-wrap:anywhere}.pilot-evidence th:first-child{width:43%}</style>{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">Two customer problems</span><h1>Planning research pilot</h1><p class="muted">Help us test financial planning and recurring payment management with observed task outcomes.</p></div><a class="btn btn-soft" href="{{ url_for('insights.index') }}">Financial Health</a></div>
+
+<section class="section-card" aria-labelledby="pilotScopeTitle">
+  <h2 id="pilotScopeTitle">What we are testing</h2>
+  <p>Does a cash-flow forecast alongside the recorded commitment estimate help people complete a planning review? Participants receive either the existing commitment estimate (control) or the estimate plus the forecast (treatment). Auto Pay and the planning acknowledgement are available to both groups.</p>
+  <p class="muted">This is a wallet prototype. Every payment is simulated, including payments made by real research participants. The study does not establish real revenue or financial improvement.</p>
+</section>
+
+{% if not participant %}
+<section class="section-card narrow-card" aria-labelledby="pilotConsentTitle">
+  <h2 id="pilotConsentTitle">Join with consent</h2>
+  <p>Participation is optional. We record study group, page exposure, activity days, planning acknowledgements, successful simulated transactions, scheduled payment outcomes and your research answers. Your study group and session source stay fixed. Your own observations appear here; only the local study operator can export aggregate cohort totals.</p>
+  <p>You can withdraw to stop collection. Existing observations remain in the study denominators, including withdrawals, so the comparison does not hide dropouts. Do not include PINs, account numbers, contact details or other sensitive information in comments.</p>
+  <form method="post" action="{{ url_for('pilot.enrol') }}" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="pilotSource">Session source</label>
+    <select id="pilotSource" name="data_source"><option value="DEMO" selected>Demo / synthetic session</option><option value="REAL">Real participant research session</option></select>
+    <label class="pilot-consent"><input type="checkbox" name="real_attestation" value="1"><span>If choosing real research, I am a real recruited research participant. Operator verification is required before these observations enter real research totals.</span></label>
+    <label class="pilot-consent"><input type="checkbox" name="consent" value="1" required><span><span>I have read this study description and consent to the observations above.</span> <small>{{ consent_version }}</small></span></label>
+    <button class="btn btn-primary" type="submit">Join planning pilot</button>
+  </form>
+</section>
+{% else %}
+<section class="section-card" aria-labelledby="pilotParticipationTitle">
+  <h2 id="pilotParticipationTitle">Your participation</h2>
+  <p><strong>{{ participant.data_source|title }} session · {{ participant.variant|title }} group</strong> · enrolled {{ ui_local_time(participant.enrolled_at).strftime('%d %b %Y') }}.</p>
+  {% if participant.withdrawn_at %}<p class="muted">Collection stopped on {{ ui_local_time(participant.withdrawn_at).strftime('%d %b %Y') }}. Existing observations remain in this study.</p>
+  {% elif participant.data_source == 'REAL' and not participant.verified_real %}<p class="muted">Research provenance awaits operator verification. Your observations are excluded from verified real research totals.</p>
+  {% else %}<p class="muted">{{ 'Verified real participant research' if participant.verified_real else 'Demo observations' }}. Wallet payment outcomes remain simulated.</p>{% endif %}
+  {% if not participant.withdrawn_at %}
+  <div class="button-row"><a class="btn btn-primary" href="{{ url_for('insights.index') }}">Review my plan</a><a class="btn btn-soft" href="{{ url_for('operations.schedules') }}">Set up a recurring payment</a></div>
+  <form method="post" action="{{ url_for('pilot.withdraw') }}" style="margin-top:16px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-soft" type="submit">Withdraw from pilot</button></form>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="section-card pilot-evidence" aria-labelledby="pilotEvidenceTitle">
+  <h2 id="pilotEvidenceTitle">Your observed study outcomes</h2>
+  <p class="muted">This page contains your account only. Cohort comparison requires the operator's aggregate report. “Unavailable” means there is no eligible observation yet; it is not a zero-percent result.</p>
+  {% set own = metrics.arms[participant.variant] if participant else metrics.arms.control %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Outcome</th><th scope="col">Observed count / denominator</th></tr></thead><tbody>
+    <tr><td>Planning reviews acknowledged</td><td>{{ own.planning_tasks_completed }} / {{ own.planning_tasks_started }} started tasks{% if own.planning_completion_rate is none %} · Unavailable{% endif %}</td></tr>
+    <tr><td>Recurring payment setup</td><td>{{ own.recurring_tasks_completed }} / {{ own.recurring_tasks_started }} started tasks{% if own.recurring_completion_rate is none %} · Unavailable{% endif %}</td></tr>
+    <tr><td>Due simulated Auto Pay completion</td><td>{{ own.auto_pay_completed }} / {{ own.auto_pay_due }} due installments · {{ own.auto_pay_cancelled }} cancelled{% if own.auto_pay_completion_rate is none %} · Unavailable{% endif %}</td></tr>
+    {% for day in ['30', '60', '90'] %}{% set retention = own.retention[day] %}<tr><td>Day {{ day }} activity retention</td><td>{{ retention.retained }} / {{ retention.eligible }} matured participant{% if retention.rate is none %} · Unavailable; follow-up window incomplete{% endif %}</td></tr>{% endfor %}
+    <tr><td>Initiated simulated transactions, first 30 days</td><td>{{ own.transactions_first_30_days }} across {{ own.mature_30_participants }} complete 30-day observation windows{% if not own.mature_30_participants %} · Unavailable{% endif %}</td></tr>
+    <tr><td>Support reports, first 30 days</td><td>{{ own.support_reports_first_30_days }} across {{ own.mature_30_participants }} complete 30-day observation windows{% if not own.mature_30_participants %} · Unavailable{% endif %}</td></tr>
+  </tbody></table></div>
+  <p class="muted">Planning completion is your acknowledgement, not a test of financial understanding. Each account has one planning task and one recurring setup task for this study. Retention checks activity on Dhaka calendar days 30–36, 60–66 or 90–96 after enrolment; the full window must finish first. Support reports cover issues recorded here, rather than external support calls.</p>
+</section>
+
+{% if pilot.enrolled %}
+<section class="section-card narrow-card" aria-labelledby="pilotResearchTitle">
+  <h2 id="pilotResearchTitle">Describe your experience</h2>
+  <p class="muted">Research answers are self-reported. They help identify needs but do not prove adoption or financial impact.</p>
+  <form method="post" action="{{ url_for('pilot.feedback') }}" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="researchProblem">Which problem matters most?</label><select id="researchProblem" name="problem" required><option value="planning">Knowing what I can safely spend</option><option value="recurring_payments">Remembering recurring payments</option><option value="both">Both</option></select>
+    <label for="researchUseful">Usefulness (1 = low, 5 = high)</label><select id="researchUseful" name="usefulness" required>{% for rating in range(1,6) %}<option value="{{ rating }}">{{ rating }}</option>{% endfor %}</select>
+    <label for="researchEase">Ease of completing the task (1 = difficult, 5 = easy)</label><select id="researchEase" name="ease" required>{% for rating in range(1,6) %}<option value="{{ rating }}">{{ rating }}</option>{% endfor %}</select>
+    <label for="researchMissed">Payments you missed in the past 30 days (0–30)</label><input id="researchMissed" name="missed_payments_last_30_days" type="number" min="0" max="30" required>
+    <label for="researchComment">What was useful or confusing? (optional)</label><textarea id="researchComment" name="comment" maxlength="1000" rows="4"></textarea>
+    <button class="btn btn-primary" type="submit">Record research response</button>
+  </form>
+</section>
+<section class="section-card narrow-card" aria-labelledby="pilotSupportTitle">
+  <h2 id="pilotSupportTitle">Record a help issue</h2><p class="muted">This records a support need for the study operator. It does not contact a live support center.</p>
+  <form method="post" action="{{ url_for('pilot.feedback') }}" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="SUPPORT">
+    <label for="supportProblem">Where did you need help?</label><select id="supportProblem" name="problem"><option value="planning">Financial planning</option><option value="recurring_payments">Recurring payment</option><option value="both">Both</option></select>
+    <label for="supportComment">Describe the issue</label><textarea id="supportComment" name="comment" maxlength="1000" rows="3" required></textarea>
+    <button class="btn btn-soft" type="submit">Record help issue</button>
+  </form>
+</section>
+{% endif %}
+{% if responses %}<section class="section-card"><h2>Your recent responses</h2>{% for response in responses %}<article style="margin:16px 0"><strong>{{ 'Help issue' if response.kind == 'SUPPORT' else 'Research response' }}</strong><small> · {{ ui_local_time(response.created_at).strftime('%d %b %Y') }}</small><p data-user-content>{{ response.comment or 'Ratings recorded without a comment.' }}</p></article>{% endfor %}</section>{% endif %}
+{% endblock %}

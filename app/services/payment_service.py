@@ -7,7 +7,7 @@ from app.domain.models import Transaction
 from app.domain.payment_plans import PaymentInvoice, PaymentSubmission
 from app.extensions import db
 from app.services.auth_service import AuthService
-from app.services.exceptions import ValidationError
+from app.services.exceptions import InsufficientBalanceError, ValidationError
 from app.services.service_catalog import BILL_CATEGORIES, MOBILE_OPERATORS
 from app.services.wallet_service import WalletService
 from app.services.recipient_service import assert_not_blocked
@@ -18,6 +18,13 @@ from app.services.validation import validate_recharge_operator
 class PaymentService:
     def __init__(self, wallet: WalletService):
         self.wallet = wallet
+
+    @staticmethod
+    def _submitted_transaction(user_id, token):
+        if not token:
+            return None
+        existing = PaymentSubmission.query.filter_by(user_id=user_id, token=token).first()
+        return db.session.get(Transaction, existing.transaction_id) if existing else None
 
     def mobile_recharge(self, user_id: int, operator: str, mobile: str, amount, *, commit=True):
         operator = (operator or "").strip()
@@ -39,10 +46,9 @@ class PaymentService:
         submission_token = str(submission_token or "").strip()
         if submission_token and not re.fullmatch(r"[0-9a-f]{32}", submission_token):
             raise ValidationError("This payment form has expired. Open the payment page again.")
-        if submission_token:
-            existing = PaymentSubmission.query.filter_by(user_id=user_id, token=submission_token).first()
-            if existing:
-                return db.session.get(Transaction, existing.transaction_id)
+        existing = self._submitted_transaction(user_id, submission_token)
+        if existing is not None:
+            return existing
         category = (category or "").strip()
         if category not in BILL_CATEGORIES:
             raise ValidationError("Choose a valid bill category.")
@@ -77,15 +83,31 @@ class PaymentService:
             transaction.note = f"Invoice {invoice_number}; " + transaction.note
             self.wallet._finish(commit)
             return transaction
-        except IntegrityError:
+        except InsufficientBalanceError:
+            if not commit:
+                raise
             db.session.rollback()
-            if submission_token:
-                existing = PaymentSubmission.query.filter_by(user_id=user_id, token=submission_token).first()
-                if existing:
-                    return db.session.get(Transaction, existing.transaction_id)
+            # Both requests can miss the token before the first commits. Its
+            # debit may consume the entire balance before the second reaches
+            # the unique token insert. Re-read after rollback so that duplicate
+            # returns the committed receipt instead of an insufficient error.
+            existing = self._submitted_transaction(user_id, submission_token)
+            if existing is not None:
+                return existing
+            if invoice_reference and PaymentInvoice.query.filter_by(user_id=user_id, category=category, provider=provider, invoice_reference=invoice_reference).first():
+                raise ValidationError("This provider invoice is already paid. Open its receipt in Report.")
+            raise
+        except IntegrityError as exc:
+            if not commit:
+                raise ValidationError("This provider invoice is already paid. Open its receipt in Report.") from exc
+            db.session.rollback()
+            existing = self._submitted_transaction(user_id, submission_token)
+            if existing is not None:
+                return existing
             raise ValidationError("This provider invoice is already paid. Open its receipt in Report.")
         except Exception:
-            db.session.rollback()
+            if commit:
+                db.session.rollback()
             raise
 
     def savings_plan(self, monthly_amount, months):

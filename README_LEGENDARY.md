@@ -2,6 +2,8 @@
 
 **Hackathon feature guide and judge walkthrough · reviewed 2 October 2026 · Bangladesh time**
 
+**Feedback update · 7 October 2026:** the product now prioritizes weekly planning and recurring payments. Financial Health includes an offline-trained random forest and published synthetic holdout evaluation; the consented pilot compares forecast-supported planning with recorded-commitment planning. Critical payment paths have concurrent database and interruption tests. Use the [updated feedback walkthrough](docs/FEEDBACK_1_4.md), [model card](docs/MODEL_CARD.md), [pilot protocol](docs/PILOT_PROTOCOL.md) and [reliability evidence](docs/RELIABILITY.md) for these additions. The source comparison and initial dataset snapshot below retain their original review date.
+
 UpayX is an independently built Flask wallet prototype inspired by Bangladesh's upay experience. Its strongest story is a connected journey: understand your household's activity, plan upcoming commitments, complete a local demo payment, and trace the result into a chart, receipt and export. It is not affiliated with upay or UCB Fintech.
 
 All balances, identities, transactions, prices, providers, bank destinations and credit terms in the supplied dataset are **synthetic demonstration data**. The app does not move real money, deliver SMS, verify National IDs, approve loans, dispense cash or connect to banks and billers. A successful status proves that the local demo operation was recorded.

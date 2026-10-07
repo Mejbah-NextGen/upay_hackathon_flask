@@ -1,6 +1,12 @@
 # UpayX — Flask AI Hackathon Fintech Prototype
 
-A responsive **desktop + mobile wallet web app** inspired by the supplied UI references. This is a hackathon/demo project only; it does not connect to real financial rails, SMS providers, banks, cards, or payment gateways.
+A responsive **desktop + mobile wallet web app** focused on **weekly financial planning and recurring payments**. This is a hackathon/demo project only; it does not connect to real financial rails, SMS providers, banks, cards, or payment gateways.
+
+## Feedback 1–4 update
+
+The dashboard now leads with two planning tasks. Financial Health adds a trained, local seven-day spending forecast alongside its explained commitment calculation. A consented randomized pilot records task outcomes, simulated payment completion, support feedback and retention with explicit denominators and demo/verified-research separation. Concurrent database and injected failure tests exercise the critical payment paths.
+
+See [feedback implementation and judge walkthrough](docs/FEEDBACK_1_4.md), [model methodology and evaluation](docs/MODEL_CARD.md), [pilot protocol](docs/PILOT_PROTOCOL.md) and [reliability evidence](docs/RELIABILITY.md). The existing dataset is preserved. Model validation is synthetic; real customer impact remains to be measured through the pilot.
 
 ## Competition package and new Financial Health Center
 

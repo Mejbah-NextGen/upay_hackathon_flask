@@ -4,6 +4,7 @@ from app.auth_helpers import login_required
 from app.container import get_container
 from app.services.reporting_service import local_datetime, parse_days
 from app.services.service_catalog import get_service
+from app.services.financial_health_service import health_for_user
 
 bp = Blueprint("dashboard", __name__)
 
@@ -25,4 +26,5 @@ def index():
     return render_template(
         "dashboard/index.html", stats=stats, recent=stats["recent"], services=services,
         quick_payments=quick_payments, days=days, local_time=local_datetime,
+        health=health_for_user(user_id),
     )

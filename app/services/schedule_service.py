@@ -100,6 +100,8 @@ def create_schedule(user_id, values, *, now=None):
         )
         db.session.add(installment)
         installments.append(installment)
+    from app.services.pilot_service import record_schedule_created
+    record_schedule_created(installments)
     db.session.commit()
     return installments
 
@@ -111,7 +113,7 @@ def cancel_schedule(user_id, schedule_id):
     if schedule.status not in {"SCHEDULED", "FAILED"}:
         raise ValidationError("Only pending or failed payments can be cancelled.")
     changed = db.session.execute(
-        update(ScheduledPayment).where(ScheduledPayment.id == schedule.id, ScheduledPayment.status.in_(["SCHEDULED", "FAILED"])).values(status="CANCELLED"),
+        update(ScheduledPayment).where(ScheduledPayment.id == schedule.id, ScheduledPayment.user_id == user_id, ScheduledPayment.status.in_(["SCHEDULED", "FAILED"])).values(status="CANCELLED"),
         execution_options={"synchronize_session": "fetch"},
     )
     if changed.rowcount != 1:
@@ -135,40 +137,44 @@ def execute_schedule(user_id, schedule_id, *, now=None):
         raise ValidationError("This payment is not due yet. No wallet balance has been deducted.")
     # The claim and both wallet ledger entries commit together. A concurrent runner
     # cannot claim this installment after it has completed, and rollback releases it.
-    claim = db.session.execute(
-        update(ScheduledPayment).where(
-            ScheduledPayment.id == schedule.id, ScheduledPayment.user_id == user_id,
-            ScheduledPayment.status == "SCHEDULED", ScheduledPayment.due_at <= now,
-        ).values(status="PROCESSING"), execution_options={"synchronize_session": "fetch"},
-    )
-    if claim.rowcount != 1:
-        db.session.rollback()
-        result = db.session.get(ScheduledPayment, schedule_id)
-        if result is not None:
-            result.processed_now = False
-        return result
     try:
-        container = get_container()
-        if schedule.kind == "SEND_MONEY":
-            transaction = container.wallet.send_money(user_id, schedule.recipient_number, schedule.amount, schedule.note or "", commit=False)
-        elif schedule.kind == "MOBILE_RECHARGE":
-            transaction = container.payments.mobile_recharge(user_id, schedule.provider, schedule.recipient_number, schedule.amount, commit=False)
-        elif schedule.kind == "BILL_PAYMENT":
-            transaction = container.payments.pay_bill(user_id, schedule.provider, schedule.recipient_number, schedule.amount, category=schedule.category, commit=False)
-        else:
-            raise ValidationError("Unsupported scheduled payment type.")
-        transaction.note = ("Scheduled payment #" + str(schedule.id) + (": " + schedule.note if schedule.note else ""))[:255]
-        schedule.transaction_id = transaction.id
-        schedule.status = "COMPLETED"
-        schedule.executed_at = now
-        schedule.last_error = None
-        db.session.commit()
-    except (ValidationError, InsufficientBalanceError) as exc:
-        db.session.rollback()
-        db.session.execute(
-            update(ScheduledPayment).where(ScheduledPayment.id == schedule_id, ScheduledPayment.status == "SCHEDULED").values(status="FAILED", last_error=str(exc)[:255]),
+        claim = db.session.execute(
+            update(ScheduledPayment).where(
+                ScheduledPayment.id == schedule.id, ScheduledPayment.user_id == user_id,
+                ScheduledPayment.status == "SCHEDULED", ScheduledPayment.due_at <= now,
+            ).values(status="PROCESSING"),
             execution_options={"synchronize_session": "fetch"},
         )
+        if claim.rowcount != 1:
+            db.session.rollback()
+            result = db.session.get(ScheduledPayment, schedule_id)
+            if result is not None:
+                result.processed_now = False
+            return result
+        try:
+            # Keep the claim locked while rolling back a rejected payment's
+            # balance and ledger writes. Releasing the outer claim first would
+            # let another runner process the same failed installment in the gap.
+            with db.session.begin_nested():
+                container = get_container()
+                if schedule.kind == "SEND_MONEY":
+                    transaction = container.wallet.send_money(user_id, schedule.recipient_number, schedule.amount, schedule.note or "", commit=False)
+                elif schedule.kind == "MOBILE_RECHARGE":
+                    transaction = container.payments.mobile_recharge(user_id, schedule.provider, schedule.recipient_number, schedule.amount, commit=False)
+                elif schedule.kind == "BILL_PAYMENT":
+                    transaction = container.payments.pay_bill(user_id, schedule.provider, schedule.recipient_number, schedule.amount, category=schedule.category, commit=False)
+                else:
+                    raise ValidationError("Unsupported scheduled payment type.")
+                transaction.note = ("Scheduled payment #" + str(schedule.id) + (": " + schedule.note if schedule.note else ""))[:255]
+                schedule.transaction_id = transaction.id
+                schedule.status = "COMPLETED"
+                schedule.executed_at = now
+                schedule.last_error = None
+        except (ValidationError, InsufficientBalanceError) as exc:
+            schedule.status = "FAILED"
+            schedule.last_error = str(exc)[:255]
+        from app.services.pilot_service import record_schedule_execution
+        record_schedule_execution(schedule, now=now)
         db.session.commit()
     except Exception:
         db.session.rollback()

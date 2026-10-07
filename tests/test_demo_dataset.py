@@ -67,7 +67,12 @@ class DemoDatasetTests(unittest.TestCase):
         self.assertTrue(dataset.synthetic)
         self.assertEqual((dataset.starts_on, dataset.ends_on), (date(2026, 6, 5), date(2026, 10, 2)))
         self.assertEqual(result["transactions"], Transaction.query.count())
-        self.assertTrue(all(value > 0 for value in result["table_counts"].values()))
+        # Research participation is never fabricated by demo seeding. Every
+        # original demo table remains populated; consented pilot tables start empty.
+        pilot_tables = {"pilot_participants", "pilot_events", "pilot_feedback"}
+        self.assertTrue(all(result["table_counts"][table] == 0 for table in pilot_tables))
+        self.assertTrue(all(value > 0 for table, value in result["table_counts"].items()
+                            if table not in pilot_tables))
         main_user = User.query.filter_by(mobile=DEMO_MAIN_MOBILE).one()
         rows = main_user.transactions.all()
         days = {local_datetime(row.created_at).date() for row in rows}

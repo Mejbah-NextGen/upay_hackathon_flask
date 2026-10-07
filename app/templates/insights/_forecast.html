@@ -1,0 +1,41 @@
+<section class="section-card forecast-card" aria-labelledby="forecastTitle">
+  <div class="section-head"><div><span class="eyebrow">Learned from transaction patterns</span><h2 id="forecastTitle">7-day spending forecast</h2></div><span class="health-status">Experimental · synthetic training</span></div>
+  {% if forecast.available %}
+    <p class="health-explanation"><span>Model</span>: {{ forecast.model_name }} · {{ forecast.model_version }}</p>
+    <p class="muted">{{ forecast.horizon_start.strftime('%d %b') }} – {{ forecast.horizon_end.strftime('%d %b %Y') }} · Bangladesh time</p>
+    <div class="forecast-summary">
+      <div><small>Expected everyday money out</small><strong>{{ currency }} {{ '{:,.2f}'.format(forecast.predicted_outflow) }}</strong></div>
+      <div><small>Empirical error range</small><strong>{{ currency }} {{ '{:,.2f}'.format(forecast.lower_bound) }} – {{ '{:,.2f}'.format(forecast.upper_bound) }}</strong></div>
+    </div>
+    <p class="health-explanation">The model uses your previous 28 complete days. Scheduled payments and Pay Later repayments are excluded because your recorded commitments are reserved separately. The range comes from synthetic calibration errors; it does not guarantee accuracy for your wallet.</p>
+    <div class="health-formula forecast-plan">
+      <div><span>After recorded commitments</span><strong>{{ currency }} {{ '{:,.2f}'.format(health.balance - health.reserved) }}</strong></div>
+      <div><span>Everyday spending still expected</span><strong>− {{ currency }} {{ '{:,.2f}'.format(forecast.predicted_remaining_outflow) }}</strong></div>
+      <div class="health-formula-total"><span>Illustrative balance after spending</span><strong>{{ currency }} {{ '{:,.2f}'.format(health.balance - health.reserved - forecast.predicted_remaining_outflow) }}</strong></div>
+    </div>
+    <p class="health-explanation">Already posted everyday spending today is subtracted from the forecast before this calculation. This planning scenario assumes no new wallet inflows. It does not reserve or move money.</p>
+    {% if health.balance < health.reserved + forecast.predicted_remaining_outflow %}<div class="health-notice"><p>Recorded commitments and expected spending exceed your current balance. Review your upcoming payments and funding plan.</p><a href="{{ url_for('operations.schedules') }}">Review payment plan</a></div>{% endif %}
+  {% else %}
+    {% set reasons = {
+      'insufficient_history': 'At least 28 complete days of wallet history are needed to estimate everyday spending.',
+      'insufficient_activity': 'There is not enough everyday spending activity in the last 28 days for a useful forecast.',
+      'invalid_history': 'Some wallet history needs review before a forecast can be shown.',
+      'model_unavailable': 'The forecast is temporarily unavailable. Please try again later.'
+    } %}
+    <div class="health-empty"><strong>Forecast not available yet</strong><p>{{ reasons.get(forecast.reason, 'The forecast is temporarily unavailable. Please try again later.') }}</p></div>
+    <p class="health-explanation">Your recorded commitments and balance estimate above remain available.</p>
+  {% endif %}
+  <details class="health-rules">
+    <summary>Model and evaluation evidence</summary>
+    <p>A supervised model is trained offline to predict seven-day everyday wallet outflow. Its evaluation compares held-out predictions with observed synthetic outcomes and simple spending-average baselines. The trained parameters run locally without an AI API.</p>
+    <p>The current evaluation demonstrates the implementation on synthetic histories. Real customer forecasting accuracy and customer impact have not yet been validated.</p>
+    {% if forecast.available %}
+    <dl class="health-observed">
+      <div><dt>Held-out mean absolute error</dt><dd>{{ currency }} {{ '{:,.2f}'.format(forecast.metrics.model.mae_bdt) }}</dd></div>
+      <div><dt>28-day mean baseline error</dt><dd>{{ currency }} {{ '{:,.2f}'.format(forecast.metrics.baselines.trailing_28_day_mean.mae_bdt) }}</dd></div>
+      <div><dt>Held-out forecast examples</dt><dd>{{ forecast.metrics.model.sample_count }}</dd></div>
+    </dl>
+    {% endif %}
+    <a class="inline-link" href="{{ url_for('insights.model_evaluation_download') }}">Download model evaluation</a>
+  </details>
+</section>

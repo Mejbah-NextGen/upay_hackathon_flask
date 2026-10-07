@@ -1,0 +1,4 @@
+# Offline experiment only. Serving uses declarative JSON and the standard library.
+-r requirements.txt
+numpy==2.5.1
+scikit-learn==1.9.0

@@ -6,10 +6,30 @@
   <div>
     <span class="eyebrow dark">Wallet Demo</span>
     <h1>{{ t('Welcome, ') }}<span data-user-content>{{ current_user.full_name }}</span> 👋</h1>
-    <p>Your services and wallet activity in one place.</p>
+    <p>Plan your spending. Keep recurring payments on time.</p>
   </div>
   <div class="hero-shapes" aria-hidden="true"><span></span><span></span><span></span></div>
 </section>
+
+<div class="health-two-columns focus-workflows" aria-label="Your two planning tasks">
+  <section class="section-card focus-card">
+    <span class="eyebrow">1 · Plan this week</span>
+    <h2>Financial Health Center</h2>
+    <p class="muted">Set aside upcoming commitments before planning everyday spending.</p>
+    <strong class="focus-amount">{{ currency }} {{ '{:,.2f}'.format(health.safe_to_spend) }}</strong>
+    <p class="health-explanation">Left after recorded payments due in the next 7 days and overdue items.</p>
+    {% if health.shortfall %}<p class="health-overdue">Funding gap: {{ currency }} {{ '{:,.2f}'.format(health.shortfall) }}</p>{% endif %}
+    <a class="btn btn-primary" href="{{ url_for('insights.index') }}">Open Financial Health</a>
+  </section>
+  <section class="section-card focus-card">
+    <span class="eyebrow">2 · Pay on time</span>
+    <h2>Recurring payments</h2>
+    <p class="muted">Plan bills, recharge and family transfers. Review due dates and payment failures.</p>
+    <strong class="focus-amount">{{ health.commitments|length }} <small>due soon</small></strong>
+    <p class="health-explanation">{{ health.overdue_count }} overdue. Balance is deducted only when a due payment succeeds.</p>
+    <a class="btn btn-primary" href="{{ url_for('operations.schedules') }}">Manage Auto Pay</a>
+  </section>
+</div>
 
 <section class="section-card period-filter" aria-label="Dashboard date range">
   <div><h2>{{ stats.period_label }} activity</h2><p class="muted">{{ stats.start_date.strftime('%d %b %Y') }}{% if days != 1 %} – {{ stats.end_date.strftime('%d %b %Y') }}{% endif %} · Bangladesh time</p></div>
@@ -29,10 +49,6 @@
 </section>
 <p class="muted dashboard-summary-note">Payments include completed bill payments and mobile recharge. Money out includes completed payments, transfers, cash-outs and fees. Your balance always shows the current amount.</p>
 
-<section class="section-card health-entry">
-  <div class="section-head"><div><span class="eyebrow">Explainable wallet planning</span><h2>Financial Health Center</h2><p class="muted">See what is left after upcoming payments, verify your ledger and review unusual activity.</p></div><a class="btn btn-soft" href="{{ url_for('insights.index') }}">Open Financial Health</a></div>
-</section>
-
 <section class="section-card quick-pay-card">
   <div class="section-head"><h2>Quick Payment</h2></div>
   <div class="quick-pay-grid">
@@ -44,14 +60,14 @@
 
 
 
-<section class="section-card">
-  <div class="section-head"><div><span class="eyebrow">Popular</span><h2>Quick Services</h2></div><a href="{{ url_for('navigation.search') }}">See All →</a></div>
+<details class="section-card secondary-services">
+  <summary>More wallet services</summary>
   <div class="service-grid">
     {% for service in services %}
       <a class="service-tile" href="{{ url_for(service.endpoint, return_to=url_for('dashboard.index', days=days), **service.params) }}"><span class="service-icon" aria-hidden="true">{{ service.icon }}</span><strong>{{ service.label }}</strong></a>
     {% endfor %}
   </div>
-</section>
+</details>
 
 <div class="dashboard-lower-grid">
   <section class="section-card">

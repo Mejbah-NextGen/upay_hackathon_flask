@@ -23,6 +23,8 @@
     </a>
     <nav class="side-nav">
       <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}"><span aria-hidden="true">&#8962;</span>Dashboard</a>
+      <a class="nav-link {% if request.blueprint == 'insights' %}active{% endif %}" href="{{ url_for('insights.index') }}"><span aria-hidden="true">&#9825;</span>Financial Health</a>
+      <a class="nav-link {% if request.blueprint == 'operations' %}active{% endif %}" href="{{ url_for('operations.schedules') }}"><span aria-hidden="true">&#8635;</span>Auto Pay</a>
       <a class="nav-link {% if request.endpoint == 'wallet.send_money' %}active{% endif %}" href="{{ url_for('wallet.send_money') }}"><span aria-hidden="true">&#8599;</span>Send Money</a>
       <a class="nav-link {% if request.endpoint == 'wallet.transfer_money' %}active{% endif %}" href="{{ url_for('wallet.transfer_money') }}"><span aria-hidden="true">&#8644;</span>Transfer Money</a>
       <a class="nav-link {% if request.endpoint == 'wallet.cash_out' %}active{% endif %}" href="{{ url_for('wallet.cash_out') }}"><span aria-hidden="true">&#127975;</span>Cash Out</a>
@@ -30,9 +32,8 @@
       <a class="nav-link {% if request.endpoint == 'wallet.add_money' %}active{% endif %}" href="{{ url_for('wallet.add_money') }}"><span aria-hidden="true">&#65291;</span>Add Money</a>
       <a class="nav-link {% if financial_active %}active{% endif %}" href="{{ url_for('payments.financial_services') }}"><span aria-hidden="true">&#8962;</span>Financial Services</a>
       <a class="nav-link {% if other_active %}active{% endif %}" href="{{ url_for('payments.other_services') }}"><span aria-hidden="true">&#9707;</span>Other Services</a>
-      <a class="nav-link {% if request.blueprint == 'operations' %}active{% endif %}" href="{{ url_for('operations.schedules') }}"><span aria-hidden="true">&#8635;</span>Auto Pay</a>
-      <a class="nav-link {% if request.blueprint == 'insights' %}active{% endif %}" href="{{ url_for('insights.index') }}"><span aria-hidden="true">&#9825;</span>Financial Health</a>
       <a class="nav-link {% if report_active %}active{% endif %}" href="{{ url_for('wallet.history') }}"><span aria-hidden="true">&#9677;</span>Report</a>
+      <a class="nav-link {% if request.blueprint == 'pilot' %}active{% endif %}" href="{{ url_for('pilot.index') }}"><span aria-hidden="true">&#10003;</span>Pilot & Feedback</a>
     </nav>
     <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

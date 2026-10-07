@@ -151,6 +151,10 @@ BANGLA.update({
 })
 
 
+from app.services.feedback_localization import FEEDBACK_BANGLA
+BANGLA.update(FEEDBACK_BANGLA)
+
+
 def translate(text, language="bn"):
     if language != "bn" or not isinstance(text, str):
         return text

@@ -1,0 +1,123 @@
+{
+  "data_source": "synthetic training",
+  "validation_scope": "held-out synthetic users and later dates",
+  "real_customer_validation": false,
+  "model": {
+    "mae_bdt": 2130.1645,
+    "rmse_bdt": 3588.8999,
+    "sample_count": 300
+  },
+  "baselines": {
+    "trailing_28_day_mean": {
+      "mae_bdt": 2200.7637,
+      "rmse_bdt": 3894.3859,
+      "sample_count": 300
+    },
+    "last_week": {
+      "mae_bdt": 2579.1641,
+      "rmse_bdt": 4270.2315,
+      "sample_count": 300
+    }
+  },
+  "mae_improvement_vs_mean_percent": 3.208,
+  "mae_improvement_vs_last_week_percent": 17.409,
+  "empirical_interval": {
+    "calibration_target_coverage": 0.9,
+    "calibration_absolute_error_90th_percentile_bdt": 3862.6151,
+    "spending_scaled_error_ratio": 0.921982,
+    "held_out_test_coverage": 0.94,
+    "method": "90th percentile of absolute error / trailing weekly mean on calibration, higher quantile"
+  },
+  "by_synthetic_profile": {
+    "steady": {
+      "mae_bdt": 1515.6231,
+      "rmse_bdt": 2122.4043,
+      "sample_count": 50
+    },
+    "irregular": {
+      "mae_bdt": 2008.9668,
+      "rmse_bdt": 2689.1662,
+      "sample_count": 50
+    },
+    "sparse": {
+      "mae_bdt": 1256.3046,
+      "rmse_bdt": 1745.6826,
+      "sample_count": 50
+    },
+    "rising": {
+      "mae_bdt": 5875.6951,
+      "rmse_bdt": 7541.3868,
+      "sample_count": 50
+    },
+    "falling": {
+      "mae_bdt": 506.9012,
+      "rmse_bdt": 690.6718,
+      "sample_count": 50
+    },
+    "volatile": {
+      "mae_bdt": 1617.4964,
+      "rmse_bdt": 2268.9314,
+      "sample_count": 50
+    }
+  },
+  "partitions": {
+    "train": {
+      "users": 180,
+      "samples": 2700,
+      "first_forecast_date": "2025-01-29",
+      "last_forecast_date": "2025-05-07",
+      "last_label_date": "2025-05-13",
+      "first_history_date": "2025-01-01"
+    },
+    "model_selection": {
+      "users": 30,
+      "samples": 120,
+      "first_forecast_date": "2025-06-18",
+      "last_forecast_date": "2025-07-09",
+      "last_label_date": "2025-07-15",
+      "first_history_date": "2025-05-21"
+    },
+    "calibration": {
+      "users": 30,
+      "samples": 120,
+      "first_forecast_date": "2025-06-18",
+      "last_forecast_date": "2025-07-09",
+      "last_label_date": "2025-07-15",
+      "first_history_date": "2025-05-21"
+    },
+    "test": {
+      "users": 60,
+      "samples": 300,
+      "first_forecast_date": "2025-08-20",
+      "last_forecast_date": "2025-09-17",
+      "last_label_date": "2025-09-23",
+      "first_history_date": "2025-07-23"
+    }
+  },
+  "seed": 20261007,
+  "final_test_seed": 20261014,
+  "generator_version": "1",
+  "model_selection": {
+    "criterion": "lower MAE on disjoint model-selection users",
+    "ridge_alpha_20": {
+      "mae_bdt": 1235.7077,
+      "rmse_bdt": 1840.7552,
+      "sample_count": 120
+    },
+    "random_forest": {
+      "mae_bdt": 1192.4067,
+      "rmse_bdt": 1656.6036,
+      "sample_count": 120
+    },
+    "selected": "random_forest",
+    "development_note": "A previous synthetic prototype informed the model family; final test uses a fresh frozen independent seed.",
+    "final_test_seed": 20261014
+  },
+  "training_library": "scikit-learn 1.9.0",
+  "limitations": [
+    "No real user data, user research, adoption or revenue validation.",
+    "Overlapping histories within a user are correlated; metrics are descriptive.",
+    "Empirical interval has no guarantee under distribution shift.",
+    "Historical spending patterns do not account for unobserved commitments or income."
+  ]
+}

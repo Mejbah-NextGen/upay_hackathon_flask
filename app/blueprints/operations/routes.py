@@ -33,7 +33,7 @@ def process_due_auto_payments():
     It uses the same atomic due-only executor; requests never create future debits.
     """
     from flask import current_app
-    if request.method != "GET" or request.endpoint == "static" or request.blueprint == "insights" or not session.get("user_id"):
+    if request.method != "GET" or request.endpoint == "static" or request.blueprint in {"insights", "pilot"} or not session.get("user_id"):
         return
     if not current_app.config.get("SCHEDULE_AUTO_RUN_ON_REQUEST", True):
         return
@@ -63,7 +63,13 @@ def schedules():
             flash(str(exc), "danger")
             status = 400
     payments = scheduled_for_user(session["user_id"])
-    return render_template("operations/schedules.html", schedules=payments, values=values, schedule_kinds=SCHEDULE_KINDS, categories=BILL_CATEGORIES, operators=MOBILE_OPERATORS, first_date=first_date, last_date=last_date, pending_total=sum((payment.amount for payment in payments if payment.status == "SCHEDULED"), Decimal("0.00")), active_service_group="financial"), status
+    response = render_template("operations/schedules.html", schedules=payments, values=values, schedule_kinds=SCHEDULE_KINDS, categories=BILL_CATEGORIES, operators=MOBILE_OPERATORS, first_date=first_date, last_date=last_date, pending_total=sum((payment.amount for payment in payments if payment.status == "SCHEDULED"), Decimal("0.00")), active_service_group="financial")
+    if request.method == "GET":
+        from app.extensions import db
+        from app.services.pilot_service import record_task_start
+        record_task_start(session["user_id"], "recurring_payment")
+        db.session.commit()
+    return response, status
 
 
 @bp.post("/schedules/<int:schedule_id>/cancel")

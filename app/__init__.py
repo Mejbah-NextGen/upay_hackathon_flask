@@ -32,6 +32,7 @@ def create_app(config_object=DevelopmentConfig):
     from app.blueprints.assistant.routes import bp as assistant_bp
     from app.blueprints.insights.routes import bp as insights_bp
     from app.blueprints.operations.routes import bp as operations_bp, register_operations_cli
+    from app.blueprints.pilot.routes import bp as pilot_bp, register_pilot_cli
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -42,7 +43,9 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(assistant_bp)
     app.register_blueprint(insights_bp)
     app.register_blueprint(operations_bp)
+    app.register_blueprint(pilot_bp)
     register_operations_cli(app)
+    register_pilot_cli(app)
 
     app.extensions["ioc_container"] = build_container(app)
 
@@ -53,6 +56,15 @@ def create_app(config_object=DevelopmentConfig):
             preferences = db.session.get(DisplayPreference, session["user_id"])
             session.setdefault("language", preferences.language if preferences else "en")
             session.setdefault("theme", preferences.theme if preferences else "system")
+
+    @app.after_request
+    def record_pilot_activity(response):
+        if (response.status_code == 200 and request.method == "GET"
+                and request.endpoint != "static" and session.get("user_id")):
+            from app.services.pilot_service import record_activity
+            if record_activity(session["user_id"]) is not None:
+                db.session.commit()
+        return response
 
     @app.after_request
     def localize_html(response):

@@ -287,6 +287,18 @@ Under **Export this report**, choose Excel or PDF and select **Download filtered
 
 For an individual transaction, open **View summary** or **Print / download**, select PDF/JPG and download. Successful supported operations open this summary automatically. Schedules have their own plan documents; completed ones also link to the payment receipt. Receipts are restricted to their signed-in owner.
 
+## Feedback update: planning forecast and research pilot
+
+The Dashboard now starts with weekly financial planning and recurring payment management. Expand **More wallet services** for the existing service shortcuts.
+
+Open **Financial Health** to see the trained seven-day ordinary-spending forecast. It needs 28 complete history days and some ordinary outflow activity. Scheduled payments and Pay Later repayments are excluded from training inputs for your prediction because recorded commitments are reserved separately. The forecast uses a model trained on synthetic histories and shows an empirical error range. Its illustrative balance subtracts already posted ordinary spending today from the forecast to avoid counting that spending twice. No prediction moves money. Open **Model and evaluation evidence** for measured synthetic errors and a JSON download.
+
+Open **Pilot & Feedback** to optionally join the planning study. Demo is the default; real recruited participant sessions require operator verification before entering real research totals. Your fixed study group receives the existing commitment calculation, or that calculation plus the forecast. Confirm a planning review, create a payment plan and describe your experience to record actual prototype outcomes. The page shows only your account. Withdrawal stops new observations; prior observations remain under the displayed consent. Study payments remain simulated.
+
+Study operators can run `python -m flask --app run:app pilot-report --source REAL` or `--source DEMO` for separate aggregate JSON reports. Follow [the pilot protocol](docs/PILOT_PROTOCOL.md) before enrolling or verifying human participants. Missing or immature observations remain unavailable; the app does not invent customer impact or revenue.
+
+For model reproduction and dependencies, see [the model card](docs/MODEL_CARD.md). For concurrent and failure demonstrations, run `python -m unittest tests.test_reliability -v` and read [the reliability evidence](docs/RELIABILITY.md).
+
 ## 17. App Assistant
 
 Open the assistant icon beside Notifications or `/assistant`. Select a suggested question or type up to 1,200 characters. Try:
