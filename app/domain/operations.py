@@ -21,6 +21,7 @@ class RecipientRegistration(db.Model):
 
 class ScheduledPayment(db.Model):
     __tablename__ = "scheduled_payments"
+    __table_args__ = (db.Index("ix_schedules_due_auto_status", "status", "auto_pay", "due_at"),)
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)

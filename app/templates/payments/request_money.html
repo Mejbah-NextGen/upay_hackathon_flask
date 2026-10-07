@@ -15,7 +15,7 @@
   <div class="section-head"><h2>Prepared Request</h2></div>
   <p>For {{ prepared.recipient_mobile }} · ৳ {{ prepared.amount }}</p>
   <div class="form-stack">
-    <label>Message to Copy<textarea readonly rows="4" aria-label="Prepared money request" onclick="this.select()" onfocus="this.select()">{{ prepared.message }}</textarea></label>
+    <label>Message to Copy<textarea readonly rows="4" aria-label="Prepared money request" data-select-all>{{ prepared.message }}</textarea></label>
   </div>
   <p class="muted">Copy and share this message yourself. The recipient needs a registered demo wallet to send money. No request is sent automatically and no balance changes until a transfer is completed.</p>
   {% set qr_kind = 'REQUEST_MONEY' %}{% set qr_reference = current_user.mobile %}{% set qr_amount = prepared.amount %}{% include 'components/qr.html' %}

@@ -31,6 +31,7 @@ class User(db.Model):
 
 class Transaction(db.Model):
     __tablename__ = "transactions"
+    __table_args__ = (db.Index("ix_transactions_user_status_created", "user_id", "status", "created_at"),)
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)

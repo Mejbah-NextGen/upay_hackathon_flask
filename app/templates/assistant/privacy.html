@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('Privacy & AI') }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">{{ t('Your choice') }}</span><h1>{{ t('Privacy & AI') }}</h1><p>{{ t('Control your AI data and choose how your wallet information is used.') }}</p></div></div>
+{% if receipt %}<section class="section-card"><h2>{{ t('Privacy receipt') }}</h2><p>{{ t('Your request has been completed.') }} <span data-user-content>{{ receipt.receipt_id }}</span></p><p>{{ t('Hosted AI consent is disabled after erasing AI data. Wallet transactions remain available for your receipts and reports.') }}</p></section>{% endif %}
+<div class="form-stack">
+<section class="section-card">
+  <h2>{{ t('Hosted AI assistant') }}</h2>
+  <p>{{ t('Local app guidance works without sending your information to an AI provider. Hosted AI is optional and off by default.') }}</p>
+  <p>{{ t('When enabled, the configured OpenAI provider receives your redacted question, up to eight recent chat messages, wallet balance, spending totals and upcoming payment amounts. Profile, recipient, invoice and transaction notes are excluded. Redaction cannot detect every private detail, so never include passwords, OTPs or PINs.') }}</p>
+  <p>{{ t('The assistant gives guidance. It cannot execute a payment, change your wallet or choose actions for you. App forms require your confirmation.') }}</p>
+  {% if privacy.hosted_assistant %}<p class="muted">{{ t('Hosted AI is enabled for your account.') }}</p><form method="post" action="{{ url_for('assistant.privacy_revoke') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="purpose" value="hosted_assistant"><button class="btn btn-soft" type="submit">{{ t('Disable hosted AI and erase chat') }}</button></form>
+  {% else %}<form method="post" action="{{ url_for('assistant.privacy_consent') }}" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="purpose" value="hosted_assistant"><label class="checkbox-label"><input type="checkbox" name="accept" value="yes" required> {{ t('I understand this disclosure and choose to share the listed data with the hosted AI provider for answers.') }}</label><button class="btn btn-primary" type="submit">{{ t('Enable hosted AI') }}</button></form>{% endif %}
+</section>
+<section class="section-card">
+  <h2>{{ t('Model research consent') }}</h2>
+  <p>{{ t('This choice is separate from hosted AI and pilot participation. It allows you to download daily wallet aggregates for research review. It does not automatically upload data, train a model or approve research use. Direct identifiers are excluded, but spending patterns can still be identifying.') }}</p>
+  {% if privacy.model_research %}<p class="muted">{{ t('Research export consent is enabled.') }}</p><div class="button-row"><a class="btn btn-soft" href="{{ url_for('assistant.privacy_research_export') }}">{{ t('Download research aggregates') }}</a><form method="post" action="{{ url_for('assistant.privacy_revoke') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="purpose" value="model_research"><button class="btn btn-soft" type="submit">{{ t('Revoke research consent') }}</button></form></div>
+  {% else %}<form method="post" action="{{ url_for('assistant.privacy_consent') }}" class="form-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="purpose" value="model_research"><label class="checkbox-label"><input type="checkbox" name="accept" value="yes" required> {{ t('I choose to enable my own aggregate research export for review. No automatic training is authorized.') }}</label><button class="btn btn-soft" type="submit">{{ t('Enable research export') }}</button></form>{% endif %}
+</section>
+<section class="section-card">
+  <h2>{{ t('Retention, export and erasure') }}</h2>
+  <p>{{ t('Chat history contains at most eight messages and expires after') }} {{ privacy.retention_days }} {{ t('days of inactivity. AI governance events contain outcome categories only and expire after 30 days. Consent remains until you revoke or erase it. The local app guide also stores bounded chat history for follow-up questions.') }}</p>
+  <p>{{ t('Clear chat removes conversation history. Erase AI data also removes your AI consents and AI governance events. Wallet ledger records are retained. Downloaded copies and provider-held data are outside this app’s deletion control; consult the provider data policy before enabling hosted AI.') }}</p>
+  <p>{{ t('A content-free erasure counter remains until account deletion to prevent requests already running from recreating erased chat. It contains no question, answer or financial amount and is included in your data export.') }}</p>
+  <div class="button-row"><a class="btn btn-soft" href="{{ url_for('assistant.privacy_export') }}">{{ t('Download my account and AI data') }}</a><form method="post" action="{{ url_for('assistant.privacy_erase') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-soft" type="submit">{{ t('Erase my AI data') }}</button></form></div>
+  <p class="muted">{{ t('Consent policy') }}: {{ privacy.policy_version }}. <a href="{{ url_for('assistant.index') }}">{{ t('Return to Assistant') }}</a></p>
+</section>
+</div>
+{% endblock %}

@@ -11,3 +11,5 @@ PyMuPDF>=1.24,<2
 uharfbuzz>=0.52,<1
 pypdf>=5,<7
 playwright>=1.55,<2
+cryptography>=46,<48
+alembic>=1.16,<2

@@ -1,4 +1,8 @@
 (() => {
+  document.querySelectorAll('[data-select-all]').forEach(input => {
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('click', () => input.select());
+  });
   'use strict';
   const dictionary = JSON.parse(document.getElementById('uiTranslations')?.textContent || '{}');
   window.upayT = text => dictionary[text] || text;

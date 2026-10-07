@@ -1,6 +1,12 @@
 # UpayX — Flask AI Hackathon Fintech Prototype
 
-A responsive **desktop + mobile wallet web app** focused on **weekly financial planning and recurring payments**. This is a hackathon/demo project only; it does not connect to real financial rails, SMS providers, banks, cards, or payment gateways.
+A responsive **desktop + mobile wallet web app** focused on **weekly financial planning and recurring payments**. Wallet operations use synthetic accounts. A signed HTTP reference sandbox demonstrates provider recovery; live Bangladesh upay, SMS, bank and card connections require contracted integrations.
+
+## Feedback 5–6 update
+
+The project now includes versioned scoped bearer APIs, payload-bound idempotency, a leased provider outbox, frozen PostgreSQL/SQLite migrations, durable scheduled-payment workers, private health/metrics and a gateway deployment configuration. Security adds persistent quotas, one-use OTP challenges, revocable browser sessions, transactional signed audits, review-only transaction signals and encrypted AI/provider fields. Hosted AI stays off until the account owner gives explicit consent; research consent, exports, erasure, retention and multilingual injection checks are separate controls.
+
+See [feedback implementation and evidence](docs/FEEDBACK_5_6.md), [API and provider contract](docs/INTEGRATION.md), [deployment and migration guide](docs/DEPLOYMENT.md), [load and PostgreSQL verification](docs/LOAD_TEST.md), [security controls](docs/SECURITY.md) and [responsible AI](docs/RESPONSIBLE_AI.md). The latest attachments contain feedback 5 and 6; feedback 7 was not attached. Real customer impact and production certification remain external validation work.
 
 ## Feedback 1–4 update
 
@@ -20,7 +26,7 @@ The replacement dataset is **realistic synthetic demo data**, approved for this 
 
 ## Features
 
-- Passwordless mobile login + demo OTP
+- Passwordless mobile login, demo OTP in development, one-use challenges and a trusted delivery adapter boundary in production
 - Responsive desktop sidebar + mobile bottom navigation
 - Dashboard with current wallet balance and history-based statistics
 - Dashboard filters for any 1–120 Bangladesh calendar days
@@ -41,14 +47,17 @@ The replacement dataset is **realistic synthetic demo data**, approved for this 
 - Recipient name and authorizing provider lookup with server-side blocked-number checks
 - Profile pictures, nickname, address and contact editing
 - One-time plans and monthly Auto Pay for the next two calendar months
-- App assistant beside Notifications, with optional OpenAI integration
+- App assistant with separate opt-in hosted AI, privacy controls and local guidance
 - Saved notification preferences
 - Saved fixed-contribution savings plans with tenure and a prorated demo 10% annual estimate
 - Pay Later with a demo credit limit, due dates and idempotent wallet repayment
 - Signed QR instructions with browser-independent image decoding and shareable money requests
 - Bar, cumulative, pie and cumulative histogram report visualizations using the same filters
 - Persisted, labeled 120-day demo transaction history and upcoming demo installments
-- SQLite database
+- SQLite demo database and PostgreSQL deployment profile with versioned migrations
+- Scoped versioned API, atomic idempotency and signed reference-provider integration
+- Durable polling workers, bounded retries, reconciliation and private observability
+- Revocable browser sessions, shared rate limits, signed audit and review signals
 - CSRF protection
 - Application factory + Blueprints
 - Repository interfaces + service layer + **IoC container / dependency injection**
@@ -66,7 +75,7 @@ Repository Interface
         ↓
 SQLAlchemy Repository
         ↓
-SQLite Database
+SQLite Demo / PostgreSQL Deployment
 ```
 
 The routes do not create database repositories or business services directly. `app/container.py` is the composition root and wires the concrete implementations together.

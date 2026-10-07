@@ -153,6 +153,8 @@ BANGLA.update({
 
 from app.services.feedback_localization import FEEDBACK_BANGLA
 BANGLA.update(FEEDBACK_BANGLA)
+from app.services.localization_security import SECURITY_BANGLA
+BANGLA.update(SECURITY_BANGLA)
 
 
 def translate(text, language="bn"):

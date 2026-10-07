@@ -46,7 +46,7 @@ def upcoming_for_user(user_id):
     return ScheduledPayment.query.filter_by(user_id=user_id, status="SCHEDULED").order_by(ScheduledPayment.due_at).all()
 
 
-def create_schedule(user_id, values, *, now=None):
+def create_schedule(user_id, values, *, now=None, commit=True):
     container = get_container()
     sender = container.wallet.get_user(user_id)
     kind = str(values.get("kind", "")).upper()
@@ -102,11 +102,17 @@ def create_schedule(user_id, values, *, now=None):
         installments.append(installment)
     from app.services.pilot_service import record_schedule_created
     record_schedule_created(installments)
-    db.session.commit()
+    from app.services.security_service import audit_event
+    for installment in installments:
+        audit_event("schedule.create", "success", user_id, {"reference": installment.id})
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
     return installments
 
 
-def cancel_schedule(user_id, schedule_id):
+def cancel_schedule(user_id, schedule_id, *, commit=True):
     schedule = ScheduledPayment.query.filter_by(id=schedule_id, user_id=user_id).first()
     if schedule is None:
         raise ValidationError("Scheduled payment not found.")
@@ -117,9 +123,15 @@ def cancel_schedule(user_id, schedule_id):
         execution_options={"synchronize_session": "fetch"},
     )
     if changed.rowcount != 1:
-        db.session.rollback()
+        if commit:
+            db.session.rollback()
         raise ValidationError("This payment has already been processed.")
-    db.session.commit()
+    from app.services.security_service import audit_event
+    audit_event("schedule.cancel", "success", user_id, {"reference": schedule_id})
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
     return schedule
 
 
@@ -175,6 +187,8 @@ def execute_schedule(user_id, schedule_id, *, now=None):
             schedule.last_error = str(exc)[:255]
         from app.services.pilot_service import record_schedule_execution
         record_schedule_execution(schedule, now=now)
+        from app.services.security_service import audit_event
+        audit_event("schedule.execute", schedule.status.lower(), user_id, {"reference": schedule_id})
         db.session.commit()
     except Exception:
         db.session.rollback()

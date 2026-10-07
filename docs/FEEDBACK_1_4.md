@@ -32,4 +32,4 @@ The browser runners use isolated databases and write screenshots/results under `
 
 Code can supply a trained model and a controlled measurement system. It cannot retrospectively produce genuine customer interviews, adoption, 30/60/90-day retention, production settlement reliability or revenue. The supplied fixture and model evaluation are synthetic. Recruit consenting real participants, follow the protocol and collect mature outcomes before making customer-impact claims. No new score or production-readiness claim is made.
 
-The remaining three feedback screenshots were not supplied in this request.
+Feedback 5 and 6 were supplied later and are implemented in [the infrastructure and security update](FEEDBACK_5_6.md). The seventh feedback screenshot has not been supplied.

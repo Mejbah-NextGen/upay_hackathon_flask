@@ -68,11 +68,16 @@ class DemoDatasetTests(unittest.TestCase):
         self.assertEqual((dataset.starts_on, dataset.ends_on), (date(2026, 6, 5), date(2026, 10, 2)))
         self.assertEqual(result["transactions"], Transaction.query.count())
         # Research participation is never fabricated by demo seeding. Every
-        # original demo table remains populated; consented pilot tables start empty.
-        pilot_tables = {"pilot_participants", "pilot_events", "pilot_feedback"}
-        self.assertTrue(all(result["table_counts"][table] == 0 for table in pilot_tables))
+        # original demo table remains populated; opt-in and operational controls
+        # must never acquire fabricated events, credentials or consent from seeding.
+        unseeded_tables = {"pilot_participants", "pilot_events", "pilot_feedback",
+            "api_tokens", "api_idempotency", "provider_intents", "provider_outbox",
+            "provider_webhooks", "ai_consents", "ai_conversation_retention", "ai_governance_events", "ai_conversation_controls",
+            "security_otp_challenges", "security_trusted_sessions", "security_rate_buckets", "security_audit_events",
+            "transaction_review_flags", "schedule_retries", "worker_heartbeats"}
+        self.assertTrue(all(result["table_counts"][table] == 0 for table in unseeded_tables))
         self.assertTrue(all(value > 0 for table, value in result["table_counts"].items()
-                            if table not in pilot_tables))
+                            if table not in unseeded_tables))
         main_user = User.query.filter_by(mobile=DEMO_MAIN_MOBILE).one()
         rows = main_user.transactions.all()
         days = {local_datetime(row.created_at).date() for row in rows}

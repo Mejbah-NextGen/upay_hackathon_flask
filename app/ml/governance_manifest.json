@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "approval_scope": "synthetic prototype research only",
+  "source": "synthetic training",
+  "approved_for_local_demo_inference": true,
+  "approved_for_real_customer_decisions": false,
+  "dataset_sha256": "8b81d41b69964b630ed486cf0ce484da8153bfb9e889caef64be3a6a2417bfc6",
+  "artifact_sha256": "2d84e94fb1c9f872983dcb70f7ce8b805137e8580cfcd174356eb611a1157e90",
+  "generator": "scripts/train_cashflow_model.py",
+  "generator_version": "1",
+  "generator_seed": 20261007,
+  "final_test_seed": 20261014,
+  "direct_identifiers": false,
+  "customer_data_used": false,
+  "training_authorization": "Synthetic generator only. Customer aggregate export is never a training input automatically.",
+  "model_purpose": "Seven-day ordinary-outflow guidance; no decisions about payment execution or credit.",
+  "retention": "Synthetic artifacts are versioned in source control. Opt-in user exports require separate review and a retention policy.",
+  "new_source_gate": [
+    "Source ownership and explicit purpose consent",
+    "Minimization and documented export expiry",
+    "Access review and checksum manifest",
+    "Separate user/date holdout",
+    "Subgroup error and drift review",
+    "New artifact SHA256 release approval"
+  ],
+  "limitations": [
+    "Synthetic subgroup checks are not evidence of fairness across real demographic groups.",
+    "Training and hosted assistant consent are distinct from pilot consent."
+  ]
+}

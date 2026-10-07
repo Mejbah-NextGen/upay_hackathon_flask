@@ -6,6 +6,8 @@ body{font-family:Inter,"Nirmala UI",system-ui,-apple-system,"Segoe UI",sans-seri
 .sidebar,.topbar,.profile-chip,.icon-button,.stat-card,.section-card,.service-tile,.balance-pill,.mobile-bottom-nav,.notification-panel,.assistant-dialog,.auth-card{background:var(--card);color:var(--ink)}
 .search-box,.profile-balance,.service-icon,.tx-icon,.recipient-status,.assistant-message-guide,.receipt-print form{background:var(--surface);border-color:var(--border)}
 .nav-link,.quick-pay-grid span,.form-stack label,.filter-controls label,.report-export-form label{color:var(--ink)}
+.form-stack .checkbox-label{display:block;font-size:14px;font-weight:600;line-height:1.6}
+.form-stack .checkbox-label input[type=checkbox]{width:18px;height:18px;padding:0;margin:0 8px 0 0;vertical-align:middle;accent-color:var(--blue)}
 .nav-link:hover,.service-tile:hover,a.notification-item:hover,.notification-item:hover{background:var(--soft)}
 .form-stack input,.form-stack select,.form-stack textarea,.filter-controls input,.filter-controls select,.report-export-form select,.receipt-print select,.amount-chips button,.assistant-prompts button,.assistant-form textarea{background:var(--card);color:var(--ink);border-color:var(--border)}
 .btn-soft,.schedule-preview,.assistant-message-user{background:var(--soft);color:var(--blue);border-color:var(--border)}

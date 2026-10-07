@@ -168,7 +168,7 @@
     <textarea id="assistantQuestion" maxlength="1200" rows="2" required placeholder="Ask about your wallet or this app..."></textarea>
     <button type="submit" class="btn btn-primary" id="assistantSend">Send</button>
   </form>
-  <div class="assistant-footer"><small>Guidance only. Confirm payments in the app.</small><button type="button" class="text-button" id="assistantClear">Clear chat</button></div>
+  <div class="assistant-footer"><small>Guidance only. Confirm payments in the app. <a href="{{ url_for('assistant.privacy') }}">AI privacy & consent</a></small><button type="button" class="text-button" id="assistantClear">Clear chat</button></div>
 </dialog>
 {% else %}
   <form class="auth-display-options" method="post" action="{{ url_for('navigation.display_preferences') }}">

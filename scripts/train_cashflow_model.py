@@ -202,8 +202,8 @@ def main():
     artifact["evaluation"] = evaluation
     artifact["training_dataset_sha256"] = hashlib.sha256(json.dumps(users, sort_keys=True).encode()).hexdigest()
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MODEL_PATH.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
-    EVALUATION_PATH.write_text(json.dumps(evaluation, indent=2) + "\n", encoding="utf-8")
+    MODEL_PATH.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8", newline="\n")
+    EVALUATION_PATH.write_text(json.dumps(evaluation, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps({"artifact": str(MODEL_PATH), "model": evaluation["model"],
                       "baselines": evaluation["baselines"],
                       "improvement_percent": evaluation["mae_improvement_vs_mean_percent"]}, indent=2))

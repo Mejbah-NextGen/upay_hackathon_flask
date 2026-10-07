@@ -3,7 +3,7 @@ from pathlib import Path
 
 from flask import Flask, render_template, request, session
 
-from config import DevelopmentConfig
+from config import DevelopmentConfig, validate_runtime_config
 from app.container import build_container, get_container
 from app.domain.models import Transaction, User
 from app.domain.notifications import NotificationReadState
@@ -17,10 +17,16 @@ from app.extensions import csrf, db
 def create_app(config_object=DevelopmentConfig):
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(config_object)
+    validate_runtime_config(app)
+    if app.config.get("TRUST_PROXY"):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     Path(app.root_path).parent.joinpath("instance").mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
+    from app.services.security_service import install_security
+    install_security(app)
     csrf.init_app(app)
 
     from app.blueprints.auth.routes import bp as auth_bp
@@ -33,6 +39,10 @@ def create_app(config_object=DevelopmentConfig):
     from app.blueprints.insights.routes import bp as insights_bp
     from app.blueprints.operations.routes import bp as operations_bp, register_operations_cli
     from app.blueprints.pilot.routes import bp as pilot_bp, register_pilot_cli
+    from app.blueprints.api.routes import bp as api_bp, register_api_cli
+    from app.blueprints.observability.routes import bp as observability_bp
+    from app.services.worker_service import register_worker_cli
+    from app.services.transaction_monitoring_service import register_monitoring_cli
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -44,14 +54,21 @@ def create_app(config_object=DevelopmentConfig):
     app.register_blueprint(insights_bp)
     app.register_blueprint(operations_bp)
     app.register_blueprint(pilot_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(observability_bp)
     register_operations_cli(app)
     register_pilot_cli(app)
+    register_api_cli(app)
+    register_worker_cli(app)
+    register_monitoring_cli(app)
 
     app.extensions["ioc_container"] = build_container(app)
 
     @app.before_request
     def restore_display_preferences():
         from app.domain.preferences import DisplayPreference
+        if request.blueprint in {"api", "observability"}:
+            return
         if session.get("user_id") and ("language" not in session or "theme" not in session):
             preferences = db.session.get(DisplayPreference, session["user_id"])
             session.setdefault("language", preferences.language if preferences else "en")
@@ -60,7 +77,8 @@ def create_app(config_object=DevelopmentConfig):
     @app.after_request
     def record_pilot_activity(response):
         if (response.status_code == 200 and request.method == "GET"
-                and request.endpoint != "static" and session.get("user_id")):
+                and request.endpoint != "static" and request.blueprint not in {"api", "observability"}
+                and session.get("user_id")):
             from app.services.pilot_service import record_activity
             if record_activity(session["user_id"]) is not None:
                 db.session.commit()
@@ -107,7 +125,8 @@ def create_app(config_object=DevelopmentConfig):
         }
 
     with app.app_context():
-        db.create_all()
+        if app.config.get("AUTO_CREATE_SCHEMA", True):
+            db.create_all()
         if app.config.get("SEED_DEMO_DATA", True):
             _seed_demo_data()
             from app.services.demo_seed import seed_demo_operations

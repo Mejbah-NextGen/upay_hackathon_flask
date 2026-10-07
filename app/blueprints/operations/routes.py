@@ -33,7 +33,7 @@ def process_due_auto_payments():
     It uses the same atomic due-only executor; requests never create future debits.
     """
     from flask import current_app
-    if request.method != "GET" or request.endpoint == "static" or request.blueprint in {"insights", "pilot"} or not session.get("user_id"):
+    if request.method != "GET" or request.endpoint == "static" or request.blueprint in {"insights", "pilot", "api", "observability"} or not session.get("user_id"):
         return
     if not current_app.config.get("SCHEDULE_AUTO_RUN_ON_REQUEST", True):
         return

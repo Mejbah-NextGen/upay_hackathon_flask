@@ -1,0 +1,217 @@
+openapi: 3.1.0
+info:
+  title: UpayX integration API
+  version: 1.0.0
+  description: Owner-scoped demo wallet planning and an independent signed reference provider sandbox. Official Bangladesh upay rails are disabled.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/balance:
+    get:
+      operationId: getBalance
+      x-required-scopes: [balance:read]
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/financial-health:
+    get:
+      operationId: getFinancialHealth
+      x-required-scopes: [insights:read]
+      description: Read-only local planning and offline model forecast. No payment authorization or hosted assistant request.
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/schedules:
+    get:
+      operationId: listSchedules
+      x-required-scopes: [schedules:read]
+      parameters:
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+        - name: after
+          in: query
+          schema: {type: integer, minimum: 0, maximum: 2147483647, default: 0}
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createSchedule
+      x-required-scopes: [schedules:write]
+      description: Explicitly confirmed demo wallet schedule; claims and result commit atomically. This does not execute a present payment.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ScheduleRequest'}
+      responses:
+        '201': {$ref: '#/components/responses/Success'}
+        '409': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/schedules/{schedule_id}/cancel:
+    post:
+      operationId: cancelSchedule
+      x-required-scopes: [schedules:write]
+      parameters:
+        - name: schedule_id
+          in: path
+          required: true
+          schema: {type: integer, minimum: 1}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/provider-intents:
+    post:
+      operationId: createReferenceProviderIntent
+      x-required-scopes: [provider:write]
+      description: Queues a reference sandbox intent. Does not debit the local wallet or invoke official upay rails.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProviderRequest'}
+      responses:
+        '202': {$ref: '#/components/responses/Success'}
+        '409': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/provider-intents/{intent_id}:
+    get:
+      operationId: getReferenceProviderIntent
+      x-required-scopes: [provider:read]
+      parameters:
+        - name: intent_id
+          in: path
+          required: true
+          schema: {type: string, pattern: '^[0-9a-f]{32}$'}
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /api/v1/provider-webhooks/reference:
+    post:
+      operationId: referenceProviderWebhook
+      description: Fresh HMAC-SHA256 signature over timestamp.method.path.raw_body. Persistent event replay and sequence checks. Cookie and bearer authority are not accepted here.
+      security:
+        - providerTimestamp: []
+          providerSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProviderEvent'}
+      responses:
+        '200': {$ref: '#/components/responses/Success'}
+        '401': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque scoped upx token
+      description: Issued/revoked via trusted local api-token CLI. Only a digest persists. Browser sessions cannot authorize API endpoints.
+    providerTimestamp:
+      type: apiKey
+      in: header
+      name: X-Provider-Timestamp
+    providerSignature:
+      type: apiKey
+      in: header
+      name: X-Provider-Signature
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Bound to token, canonical payload, method and path. Identical retries return the stored result; changed request returns 409.
+      schema: {type: string, pattern: '^[A-Za-z0-9_-]{8,128}$'}
+  responses:
+    Success:
+      description: Owner-scoped result. No-store caching, JSON body limited to bounded endpoint resources.
+      headers:
+        X-Request-ID:
+          description: Server-generated request correlation ID.
+          schema: {type: string}
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, request_id]
+            properties:
+              data: {type: object}
+              request_id: {type: string, pattern: '^[0-9a-f]{32}$'}
+    Error:
+      description: Validation (400/422), authentication (401), scope (403), missing resource (404), idempotency/protocol conflict (409), size (413), media type (415), shared rate limit (429), unavailable provider (503), or internal failure (500).
+      headers:
+        X-Request-ID:
+          schema: {type: string}
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error, request_id]
+            properties:
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code: {type: string}
+                  message: {type: string}
+              request_id: {type: string}
+  schemas:
+    Amount:
+      type: string
+      pattern: '^(?:0|[1-9][0-9]{0,5})(?:\.[0-9]{1,2})?$'
+      description: Positive decimal BDT amount; provider maximum 100000.00. No floating point JSON amounts.
+    ScheduleRequest:
+      type: object
+      additionalProperties: false
+      required: [kind, amount, recipient_number, due_date, confirmed]
+      properties:
+        kind: {type: string, enum: [SEND_MONEY, MOBILE_RECHARGE, BILL_PAYMENT]}
+        amount: {$ref: '#/components/schemas/Amount'}
+        recipient_number: {type: string, maxLength: 120}
+        provider: {type: string, maxLength: 120}
+        category: {type: string, maxLength: 120}
+        frequency: {type: string, enum: [ONE_TIME, MONTHLY], default: ONE_TIME}
+        auto_pay: {type: boolean, default: true}
+        due_date: {type: string, format: date, description: Within the existing Bangladesh-local scheduling window.}
+        note: {type: string, maxLength: 255}
+        confirmed: {type: boolean, const: true}
+    ProviderRequest:
+      type: object
+      additionalProperties: false
+      required: [amount, biller_reference, confirmed]
+      properties:
+        provider: {type: string, const: reference_sandbox, default: reference_sandbox}
+        amount: {$ref: '#/components/schemas/Amount'}
+        biller_reference: {type: string, pattern: '^[A-Za-z0-9_-]{1,80}$', description: Synthetic sandbox reference only.}
+        confirmed: {type: boolean, const: true}
+    ProviderEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, external_id, amount, currency, status, sequence, provider_reference]
+      properties:
+        event_id: {type: string, minLength: 1, maxLength: 80}
+        external_id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        amount: {type: string, pattern: '^[0-9]{1,6}\.[0-9]{2}$'}
+        currency: {type: string, const: BDT}
+        status: {type: string, enum: [PENDING, SUCCEEDED, FAILED]}
+        sequence: {type: integer, minimum: 1, maximum: 2147483647}
+        provider_reference: {type: string, minLength: 1, maxLength: 80}

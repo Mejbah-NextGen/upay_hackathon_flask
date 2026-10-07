@@ -7,6 +7,8 @@ time, and no prediction authorizes or executes a payment.
 
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+import hashlib
+import hmac
 import json
 import math
 from pathlib import Path
@@ -31,6 +33,10 @@ FEATURE_LABELS = (
     "Largest day's spending share", "Days since ordinary spending",
 )
 MODEL_PATH = Path(__file__).resolve().parents[1] / "ml" / "cashflow_random_forest.json"
+MANIFEST_PATH = MODEL_PATH.with_name("governance_manifest.json")
+# A manifest alone cannot approve a replacement: update this hash through the
+# release review gates as well. The artifact is UTF-8 with canonical LF endings.
+APPROVED_ARTIFACT_SHA256 = "2d84e94fb1c9f872983dcb70f7ce8b805137e8580cfcd174356eb611a1157e90"
 CENT = Decimal("0.01")
 
 
@@ -52,8 +58,21 @@ def extract_features(daily_amounts):
 
 def load_artifact(path=None):
     """Use declarative JSON, never pickle or executable model deserialization."""
-    with Path(path or MODEL_PATH).open(encoding="utf-8") as source:
-        artifact = json.load(source)
+    selected = Path(path or MODEL_PATH)
+    with selected.open("rb") as source:
+        raw = source.read()
+    raw_bytes = raw if isinstance(raw, bytes) else raw.encode("utf-8")
+    if selected.resolve() == MODEL_PATH.resolve():
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        approved = manifest.get("artifact_sha256", "")
+        if (not manifest.get("approved_for_local_demo_inference")
+                or manifest.get("customer_data_used") is not False
+                or manifest.get("source") != "synthetic training"
+                or not isinstance(approved, str)
+                or not hmac.compare_digest(approved, APPROVED_ARTIFACT_SHA256)
+                or not hmac.compare_digest(hashlib.sha256(raw_bytes).hexdigest(), approved)):
+            raise ValueError("Forecast artifact has no matching release approval.")
+    artifact = json.loads(raw)
     if (artifact.get("schema_version") != 1 or artifact.get("feature_names") != list(FEATURE_NAMES)
             or artifact.get("history_days") != HISTORY_DAYS
             or artifact.get("horizon_days") != HORIZON_DAYS

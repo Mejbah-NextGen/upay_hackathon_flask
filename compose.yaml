@@ -1,0 +1,144 @@
+# Local infrastructure lab. No public ports, customer data or provider assumed.
+# PostgreSQL TLS is disabled only inside this private local Docker network.
+name: upayx-infrastructure
+
+x-app-environment: &app-environment
+  SECRET_KEY: ${SECRET_KEY:?Set a unique SECRET_KEY of at least 32 characters}
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Set a generated Fernet DATA_ENCRYPTION_KEY}
+  DATA_ENCRYPTION_KEYS: ${DATA_ENCRYPTION_KEYS:-}
+  SECURITY_HASH_KEY: ${SECURITY_HASH_KEY:-}
+  AUDIT_SIGNING_KEY: ${AUDIT_SIGNING_KEY:-}
+  OBSERVABILITY_TOKEN: ${OBSERVABILITY_TOKEN:?Set a separate random OBSERVABILITY_TOKEN}
+  DATABASE_URL: postgresql+psycopg://upayx:${POSTGRES_PASSWORD:?Set a random URL-safe POSTGRES_PASSWORD}@db:5432/upayx
+  DATABASE_SSL_REQUIRED: "0" # LOCAL LAB ONLY; production requires verified DB TLS.
+  TRUST_PROXY: "1" # Exactly one trusted Nginx hop; web has no published port.
+  PROVIDER_BASE_URL: ${PROVIDER_BASE_URL:-}
+  PROVIDER_SIGNING_SECRET: ${PROVIDER_SIGNING_SECRET:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gpt-4.1-mini}
+
+x-app: &app
+  build: .
+  image: upayx-infrastructure:local
+  environment: *app-environment
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  init: true
+  stop_grace_period: 40s
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: postgres:18-bookworm
+    environment:
+      POSTGRES_USER: upayx
+      POSTGRES_DB: upayx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a random URL-safe POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      # PG18 official images use a versioned PGDATA directory under this root.
+      - postgres18_data:/var/lib/postgresql
+    networks: [data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
+  migrate:
+    <<: *app
+    command: [alembic, upgrade, head]
+    networks: [data]
+    restart: "no"
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    <<: *app
+    command:
+      - gunicorn
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "2"
+      - --worker-class
+      - gthread
+      - --threads
+      - "4"
+      - --timeout
+      - "30"
+      - --graceful-timeout
+      - "30"
+      - --max-requests
+      - "1000"
+      - --max-requests-jitter
+      - "100"
+      - --error-logfile
+      - "-"
+      - --access-logfile
+      - "-"
+      - --access-logformat
+      - '{"event":"http.access","request_id":"%({x-request-id}o)s","status":"%(s)s","duration_seconds":"%(L)s"}'
+      - wsgi:app
+    expose: ["8000"]
+    networks: [data, ingress, egress]
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  scheduler:
+    <<: *app
+    command: [flask, --app, "wsgi:app", durable-worker, --watch, --interval, "10", --batch-size, "50"]
+    networks: [data]
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  provider-worker:
+    <<: *app
+    command: [flask, --app, "wsgi:app", provider-worker, --watch, --interval, "5", --limit, "20"]
+    networks: [data, egress]
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  gateway:
+    image: nginx:stable-alpine
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    # Only localhost is exposed; this is deliberately not a public deployment.
+    ports: ["127.0.0.1:8080:8080"]
+    networks: [ingress]
+    restart: unless-stopped
+    depends_on:
+      web: {condition: service_healthy}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
+volumes:
+  postgres18_data:
+
+networks:
+  data:
+    internal: true
+  ingress: {}
+  egress:

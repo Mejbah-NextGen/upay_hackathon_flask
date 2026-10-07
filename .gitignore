@@ -1,4 +1,5 @@
 .venv/
+tmp/infrastructure-qa/
 __pycache__/
 *.py[cod]
 .env

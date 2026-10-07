@@ -399,4 +399,22 @@ For isolated browser QA, install Chrome and run `python -m tests.browser_qa`; sc
 | AI unavailable | Use the working local guide; verify the configured provider/key only if enabling hosted mode. |
 | CSRF/session error after reset | Reload the form and sign in again after restarting the server. |
 
-The project has no real OTP delivery, identity verification, merchant settlement, credit underwriting, bank/card rails or fraud decision service. Public production features and prices belong to their providers; this manual describes the local prototype.
+The project has no contracted OTP delivery, external identity verification, merchant settlement, credit underwriting, bank/card rails or fraud decision service. Its trusted OTP adapter and signed reference payment sandbox demonstrate integration boundaries. Public production features and prices belong to their providers; this manual describes the prototype.
+
+## 21. Account sessions and AI privacy
+
+Open **Settings → Device sessions** to review browser sessions and revoke them. Revoking the current browser requires a new sign-in. Development still uses the displayed demo OTP; the production profile rejects it and requires a configured delivery adapter.
+
+Open **Settings → Privacy settings** or **Assistant → Privacy & AI**. Local guidance works with hosted AI off. Read the data disclosure and check the consent box before enabling hosted answers. A configured provider key alone does not grant consent. Research export has its own checkbox and does not upload data or train a model automatically.
+
+Use **Disable hosted AI and erase chat** to stop hosted sharing and remove chat. **Download my account and AI data** exports your own account, receipts and AI state. **Erase my AI data** removes AI consent, conversation and governance events, and returns a receipt. A content-free per-account counter prevents an answer already in progress from restoring erased chat. Wallet receipts remain available. Downloaded copies and provider-held data are outside the app's deletion control. Chat is limited to eight messages and expires after seven inactive days; AI outcome events expire after thirty days.
+
+These pages support English and Bangla. The assistant can explain and link to forms; it cannot execute a payment.
+
+## 22. APIs, migrations and durable processing
+
+The versioned API uses scoped bearer tokens rather than browser cookies. Creating a future plan never debits the wallet. Retrying a write with the same idempotency key and payload returns its recorded result; changing that payload is rejected. The signed reference provider has a separate ledger and does not charge a local wallet or activate real upay.
+
+See [the OpenAPI contract](docs/openapi.yaml) and [integration guide](docs/INTEGRATION.md) for token issuance, requests and provider recovery. See [deployment](docs/DEPLOYMENT.md) for database backups and validated migration adoption, PostgreSQL setup, durable scheduler/provider workers, trusted OTP registration and private health/metrics. The production profile never auto-creates tables or seeds demo funds.
+
+Run the isolated regression suite with `.venv\Scripts\python.exe -m unittest discover -v`. [Load verification](docs/LOAD_TEST.md) documents actual HTTP workloads and the isolated PostgreSQL runner. These runners do not modify the normal wallet database. [The feedback evidence](docs/FEEDBACK_5_6.md) distinguishes working controls from live-provider and independent security validation still required.

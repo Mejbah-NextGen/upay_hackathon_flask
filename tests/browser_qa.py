@@ -84,7 +84,7 @@ def run():
             assert int(after)==int(before)-1
             # Browser Back restores cached markup; server read state must refresh it.
             page.go_back()
-            page.wait_for_function("document.querySelector('.notification-count')?.textContent === '1'")
+            page.wait_for_function("() => document.querySelector('.notification-count')?.textContent === '1'")
             assert page.locator('.notification-item.unread').count()==1
             if not page.locator('#notificationDropdown').evaluate('(e)=>e.open'):
                 page.locator('#notificationDropdown summary').click()
@@ -95,7 +95,7 @@ def run():
             context.request.post(origin+'/wallet/add-money',form={**funding,'amount':'5'},max_redirects=0)
             context.request.post(origin+'/profile/settings',form={})
             page.goto(origin+'/notifications')
-            page.wait_for_function("document.querySelector('[data-notification-read-all]') && !document.querySelector('[data-notification-read-all]').hidden")
+            page.wait_for_function("() => document.querySelector('[data-notification-read-all]') && !document.querySelector('[data-notification-read-all]').hidden")
             assert page.locator('[data-notification-read-all]').is_visible()
             assert page.locator('.notification-count').count()==0
             context.request.post(origin+'/profile/settings',form={'notifications_enabled':'on'})
@@ -191,14 +191,14 @@ def run():
             assert barcode and barcode.text.startswith('UPAYX:')
             page.locator('[name=amount]').fill('30')
             page.locator('[data-qr-text]').fill(barcode.text); page.locator('[data-qr-read]').click()
-            page.wait_for_function("document.querySelector('[name=amount]').value === '20.50'")
+            page.wait_for_function("() => document.querySelector('[name=amount]').value === '20.50'")
             # Assistant history persists; clear resets both UI and server context.
             page.locator('#assistantToggle').click()
             page.locator('#assistantQuestion').fill('What is my balance?'); page.locator('#assistantSend').click()
-            page.wait_for_function("document.querySelectorAll('.assistant-message').length >= 3")
+            page.wait_for_function("() => document.querySelectorAll('.assistant-message').length >= 3")
             assert 'Open Report' not in page.locator('#assistantMessages').inner_text()
             page.locator('#assistantClear').click()
-            page.wait_for_function("document.querySelectorAll('.assistant-message').length === 1")
+            page.wait_for_function("() => document.querySelectorAll('.assistant-message').length === 1")
             assert context.request.get(origin+'/assistant/history').json()['messages']==[]
             browser.close()
     finally:

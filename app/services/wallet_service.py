@@ -83,10 +83,15 @@ class WalletService:
         # Observations are part of the same unit of work as the ledger. Capture
         # pending rows before flush assigns IDs; replayed receipts add no event.
         from app.services.pilot_service import record_transaction
+        from app.services.security_service import audit_event
+        from app.services.transaction_monitoring_service import monitor_transaction
         pending = [row for row in db.session.new if isinstance(row, Transaction)]
         db.session.flush()
         for transaction in pending:
             record_transaction(transaction)
+            monitor_transaction(transaction)
+            audit_event("wallet." + transaction.kind.lower(), "success", transaction.user_id,
+                        {"reference": transaction.id})
         if commit:
             db.session.commit()
         else:

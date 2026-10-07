@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from flask import current_app
+
 from app.domain.models import User
 from app.repositories.interfaces import UserRepository
 from app.services.exceptions import AuthenticationError, ValidationError
@@ -28,16 +30,24 @@ class AuthService:
         mobile = self.normalize_mobile(mobile)
         if self.users.get_by_mobile(mobile):
             raise ValidationError("An account with this mobile number already exists.")
+        from app.services.security_service import require_otp_delivery, security_production
+        require_otp_delivery()
+        demo_balance = bool(current_app.config.get("DEMO_BALANCES_ALLOWED", not security_production()))
         user = User(
             full_name=full_name,
             mobile=mobile,
             email=email,
-            balance=Decimal("5000.00"),
-            verified=True,
+            balance=Decimal("5000.00") if demo_balance else Decimal("0.00"),
+            verified=not security_production(),
         )
         return self.users.add(user)
 
-    def verify_otp(self, submitted_otp: str) -> bool:
+    def verify_otp(self, submitted_otp: str, challenge_id=None, user_id=None) -> bool:
+        from app.services.security_service import security_production, verify_otp_challenge
+        if challenge_id:
+            return verify_otp_challenge(challenge_id, user_id, submitted_otp)
+        if security_production() or not current_app.config.get("DEMO_OTP_ALLOWED", True):
+            raise AuthenticationError("Please request a new verification code.")
         if (submitted_otp or "").strip() != self.demo_otp:
             raise AuthenticationError("Invalid OTP. For the demo, use the OTP shown on this page.")
         return True

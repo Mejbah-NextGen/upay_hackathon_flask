@@ -12,6 +12,7 @@
 </section>
 <section class="section-card settings-list narrow-card">
   <div><span>🌐</span><div><strong>Language</strong><small>Interface language</small></div><span>English</span></div>
-  <div><span>🔐</span><div><strong>Sign-in security</strong><small>This prototype uses the demo OTP shown during sign-in.</small></div><a class="btn btn-soft" href="{{ url_for('profile.index') }}">My Profile</a></div>
+  <div><span>🔐</span><div><strong>Sign-in security</strong><small>Review and revoke your signed-in devices.</small></div><a class="btn btn-soft" href="{{ url_for('auth.devices') }}">Manage devices</a></div>
+  <div><span>✦</span><div><strong>AI privacy & consent</strong><small>Control AI sharing, export your data and erase your chat.</small></div><a class="btn btn-soft" href="{{ url_for('assistant.privacy') }}">Privacy settings</a></div>
 </section>
 {% endblock %}
